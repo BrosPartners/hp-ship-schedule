@@ -1,7 +1,9 @@
 import json
 from datetime import date, datetime
+from pathlib import Path
 
 import pandas as pd
+import pytest
 
 from scraper.store import (SCHEMA_COLUMNS, latest_snapshot, load,
                             mark_crawled_empty, upsert, write_manifest)
@@ -72,3 +74,81 @@ def test_empty_day_is_crawled_not_missing(tmp_path):
     man = write_manifest(path, mpath, date(2026, 8, 1), date(2026, 8, 3))
     assert man["missing_days"] == []
     assert man["empty_days"] == ["2026-08-02"]
+
+
+def test_upsert_leaves_no_tmp_file_on_success(tmp_path):
+    """A successful upsert should not leave a .tmp file in the data directory."""
+    path = tmp_path / "d.parquet"
+    upsert(path, [_rec(11, "a", datetime(2026, 8, 11, 7, 30))])
+
+    # Check no .tmp file exists
+    tmp_file = tmp_path / "d.parquet.tmp"
+    assert not tmp_file.exists()
+
+
+def test_upsert_preserves_data_on_write_failure(tmp_path, monkeypatch):
+    """If Parquet write fails, the pre-existing file is untouched and no .tmp file left."""
+    path = tmp_path / "d.parquet"
+
+    # Write initial data
+    initial_records = [_rec(11, "a", datetime(2026, 8, 11, 7, 30))]
+    upsert(path, initial_records)
+    original_content = path.read_bytes()
+
+    # Simulate write failure: make to_parquet raise on next call
+    original_to_parquet = pd.DataFrame.to_parquet
+
+    def failing_to_parquet(self, *args, **kwargs):
+        raise IOError("Simulated write failure")
+
+    monkeypatch.setattr(pd.DataFrame, "to_parquet", failing_to_parquet)
+
+    # Try to upsert new data; this should fail
+    new_records = [_rec(12, "b", datetime(2026, 8, 12, 7, 30))]
+    with pytest.raises(IOError, match="Simulated write failure"):
+        upsert(path, new_records)
+
+    # Verify original file is untouched
+    assert path.read_bytes() == original_content
+
+    # Verify no .tmp file left behind
+    tmp_file = tmp_path / "d.parquet.tmp"
+    assert not tmp_file.exists()
+
+    # Verify original data is still loadable
+    df = load(path)
+    assert len(df) == 1
+    assert df.iloc[0]["row_key"] == "a"
+
+
+def test_write_manifest_preserves_manifest_on_failure(tmp_path, monkeypatch):
+    """If manifest write fails, the pre-existing manifest is untouched and no .tmp file left."""
+    path = tmp_path / "d.parquet"
+    mpath = tmp_path / "manifest.json"
+
+    # Write initial data and manifest
+    upsert(path, [_rec(1, "a", datetime(2026, 8, 12, 7, 30))])
+    write_manifest(path, mpath, date(2026, 8, 1), date(2026, 8, 1))
+    original_manifest_content = mpath.read_text(encoding="utf-8")
+
+    # Simulate write failure: make write_text fail on manifest.json.tmp writes
+    original_write_text = Path.write_text
+
+    def failing_write_text(self, *args, **kwargs):
+        # Fail on tmp file writes for manifest
+        if "manifest.json.tmp" in str(self):
+            raise IOError("Simulated manifest write failure")
+        return original_write_text(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "write_text", failing_write_text)
+
+    # Try to write manifest again; this should fail
+    with pytest.raises(IOError, match="Simulated manifest write failure"):
+        write_manifest(path, mpath, date(2026, 8, 1), date(2026, 8, 5))
+
+    # Verify original manifest is untouched
+    assert mpath.read_text(encoding="utf-8") == original_manifest_content
+
+    # Verify no .tmp file left behind
+    tmp_file = tmp_path / "manifest.json.tmp"
+    assert not tmp_file.exists()

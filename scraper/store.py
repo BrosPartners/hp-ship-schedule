@@ -1,6 +1,7 @@
 """Append-only Parquet storage with snapshot versioning and a coverage manifest."""
 
 import json
+import os
 from datetime import date, timedelta
 from pathlib import Path
 
@@ -49,7 +50,18 @@ def upsert(parquet_path, records):
         merged = pd.concat([existing, incoming], ignore_index=True)
     merged = merged.sort_values(["plan_date", "section", "plan_time", "row_key"])
     path.parent.mkdir(parents=True, exist_ok=True)
-    merged.to_parquet(path, index=False, compression="zstd")
+
+    # Write to temporary file first, then atomically replace
+    tmp_path = Path(str(path) + ".tmp")
+    try:
+        merged.to_parquet(tmp_path, index=False, compression="zstd")
+        os.replace(tmp_path, path)
+    except Exception:
+        # Clean up temp file if it exists and re-raise the exception
+        if tmp_path.exists():
+            tmp_path.unlink()
+        raise
+
     return len(incoming)
 
 
@@ -79,9 +91,20 @@ def mark_crawled_empty(manifest_path, plan_date):
     empty.add(plan_date.isoformat())
     manifest["empty_days"] = sorted(empty)
     Path(manifest_path).parent.mkdir(parents=True, exist_ok=True)
-    Path(manifest_path).write_text(
-        json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
+
+    # Write to temporary file first, then atomically replace
+    manifest_path_obj = Path(manifest_path)
+    tmp_path = Path(str(manifest_path_obj) + ".tmp")
+    try:
+        tmp_path.write_text(
+            json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+        os.replace(tmp_path, manifest_path_obj)
+    except Exception:
+        # Clean up temp file if it exists and re-raise the exception
+        if tmp_path.exists():
+            tmp_path.unlink()
+        raise
 
 
 def write_manifest(parquet_path, manifest_path, start_date, today):
@@ -113,7 +136,19 @@ def write_manifest(parquet_path, manifest_path, start_date, today):
         "missing_days": missing,
     })
     Path(manifest_path).parent.mkdir(parents=True, exist_ok=True)
-    Path(manifest_path).write_text(
-        json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
+
+    # Write to temporary file first, then atomically replace
+    manifest_path_obj = Path(manifest_path)
+    tmp_path = Path(str(manifest_path_obj) + ".tmp")
+    try:
+        tmp_path.write_text(
+            json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+        os.replace(tmp_path, manifest_path_obj)
+    except Exception:
+        # Clean up temp file if it exists and re-raise the exception
+        if tmp_path.exists():
+            tmp_path.unlink()
+        raise
+
     return manifest
