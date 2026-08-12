@@ -124,3 +124,64 @@ def build_records(raw_rows, crawled_at):
         rec["row_key"] = _row_key(rec)
         records.append(rec)
     return records
+
+
+import csv
+
+_TRUE = {"true", "1", "yes", "y"}
+
+
+def load_berth_map(path):
+    """Load berth_map.csv keyed by uppercased raw name."""
+    mapping = {}
+    with open(path, newline="", encoding="utf-8-sig") as fh:
+        for row in csv.DictReader(fh):
+            raw = (row["raw_name"] or "").strip().upper()
+            if not raw:
+                continue
+            mapping[raw] = {
+                "berth": (row["berth"] or "").strip() or None,
+                "ticker": (row["ticker"] or "").strip() or None,
+                "is_hai_phong": (row["is_hai_phong"] or "").strip().lower() in _TRUE,
+                "type": (row["type"] or "").strip() or None,
+            }
+    return mapping
+
+
+def _lookup(berth_map, raw):
+    if not raw:
+        return None
+    return berth_map.get(str(raw).strip().upper())
+
+
+def apply_berth_map(records, berth_map):
+    """Add normalized berth/ticker/type columns. Raw values are never altered."""
+    out = []
+    for rec in records:
+        rec = dict(rec)
+        src = _lookup(berth_map, rec.get("from_raw"))
+        dst = _lookup(berth_map, rec.get("to_raw"))
+        for side, hit in (("from", src), ("to", dst)):
+            rec[f"{side}_berth"] = hit["berth"] if hit else None
+            rec[f"{side}_ticker"] = hit["ticker"] if hit else None
+            rec[f"{side}_type"] = hit["type"] if hit else None
+        both_known = src is not None and dst is not None
+        rec["is_domestic"] = bool(
+            (both_known and src["type"] != "external" and dst["type"] != "external")
+            or (both_known and src["is_hai_phong"] and dst["is_hai_phong"])
+            or rec.get("is_sb")
+        )
+        out.append(rec)
+    return out
+
+
+def coverage(records):
+    """Share of non-empty from/to slots that resolved to a mapped entry."""
+    total = mapped = 0
+    for rec in records:
+        for side in ("from", "to"):
+            if rec.get(f"{side}_raw"):
+                total += 1
+                if rec.get(f"{side}_berth"):
+                    mapped += 1
+    return 1.0 if total == 0 else mapped / total

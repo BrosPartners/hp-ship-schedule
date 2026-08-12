@@ -1,0 +1,20 @@
+raw_name,berth,ticker,is_hai_phong,type
+TAN VU,Tân Vũ,PHP,true,berth
+CHUA VE,Chùa Vẽ,PHP,true,berth
+HOANG DIEU,Hoàng Diệu,PHP,true,berth
+DINH VU,Đình Vũ,DVP,true,berth
+HICT,Lạch Huyện HICT,,true,berth
+NAM HAI DINH VU,Nam Hải Đình Vũ,GMD,true,berth
+NAM HAI,Nam Hải,GMD,true,berth
+GREEN PORT,Green Port,VSC,true,berth
+VIP GREEN,VIP Green,VSC,true,berth
+NAM DINH VU,Nam Đình Vũ,GMD,true,berth
+VIMC,VIMC Đình Vũ,,true,berth
+CANG 128,Cảng 128,,true,berth
+BACH DANG,Bạch Đằng,,true,berth
+HUY VAN,Huy Vân,,true,berth
+CHINA,Trung Quốc,,false,external
+NINH BINH,Ninh Bình,,false,berth
+NGHI SON,Nghi Sơn,,false,berth
+CUA LO,Cửa Lò,,false,berth
+HON LA,Hòn La,,false,berth
