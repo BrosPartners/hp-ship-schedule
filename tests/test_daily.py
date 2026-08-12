@@ -1,4 +1,5 @@
 import gzip
+import json
 from datetime import date, datetime
 from pathlib import Path
 
@@ -61,6 +62,40 @@ def test_a_second_run_on_a_later_day_creates_a_second_snapshot(tmp_path):
     import pandas as pd
     df = pd.read_parquet(paths["parquet"])
     assert df["crawled_at"].nunique() == 2
+
+
+def _empty_page_for(target):
+    """A minimal page with the correct date header and no data tables, so
+    parse_page returns [] without raising DateMismatchError."""
+    return f"<html><body>KE HOACH DIEU DONG TAU NGAY {target:%d/%m/%Y}</body></html>"
+
+
+def test_daily_does_not_mark_unpublished_future_day_as_empty(tmp_path):
+    """Tomorrow's plan is usually not published yet; an empty fetch for a
+    future target must not be recorded as empty_days, or it can never
+    self-heal once the plan is actually published."""
+    paths = {"parquet": tmp_path / "d.parquet", "manifest": tmp_path / "m.json",
+              "agg": tmp_path / "agg"}
+
+    result = run(paths=paths, fetcher=_empty_page_for, today=date(2026, 8, 12),
+                 now=datetime(2026, 8, 12, 7, 30))
+    assert result["days_failed"] == []
+
+    manifest = json.loads(paths["manifest"].read_text(encoding="utf-8"))
+    assert date(2026, 8, 13).isoformat() not in manifest["empty_days"]
+
+
+def test_daily_marks_non_future_empty_day_as_empty(tmp_path):
+    paths = {"parquet": tmp_path / "d.parquet", "manifest": tmp_path / "m.json",
+              "agg": tmp_path / "agg"}
+
+    result = run(paths=paths, fetcher=_empty_page_for, today=date(2026, 8, 12),
+                 now=datetime(2026, 8, 12, 7, 30))
+    assert result["days_failed"] == []
+
+    manifest = json.loads(paths["manifest"].read_text(encoding="utf-8"))
+    assert date(2026, 8, 12).isoformat() in manifest["empty_days"]
+    assert date(2026, 8, 11).isoformat() in manifest["empty_days"]
 
 
 def test_daily_raises_loudly_when_berth_map_is_missing(tmp_path, monkeypatch):

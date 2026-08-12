@@ -157,6 +157,12 @@ def write_manifest(parquet_path, manifest_path, start_date, today):
     if not df.empty:
         present = {pd.Timestamp(d).date().isoformat() for d in df["plan_date"]}
 
+    # A date that has rows is, by definition, not an empty day. Without this
+    # purge, a date wrongly marked empty (e.g. "tomorrow" before its plan was
+    # published) would stay labelled "crawled and empty" forever, even after
+    # it genuinely gets rows.
+    empty_days -= present
+
     expected, cursor = [], start_date
     while cursor <= today:
         expected.append(cursor.isoformat())

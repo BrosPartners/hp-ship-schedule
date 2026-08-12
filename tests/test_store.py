@@ -77,6 +77,30 @@ def test_empty_day_is_crawled_not_missing(tmp_path):
     assert man["empty_days"] == ["2026-08-02"]
 
 
+def test_write_manifest_heals_empty_day_that_now_has_rows(tmp_path):
+    """A date previously recorded as empty that later has rows must be
+    dropped from empty_days (and not appear in missing_days either)."""
+    path = tmp_path / "d.parquet"
+    mpath = tmp_path / "manifest.json"
+    mark_crawled_empty(mpath, date(2026, 8, 2))
+    upsert(path, [_rec(1, "a", datetime(2026, 8, 12, 7, 30))])
+    upsert(path, [_rec(2, "b", datetime(2026, 8, 12, 7, 30))])
+    man = write_manifest(path, mpath, date(2026, 8, 1), date(2026, 8, 3))
+    assert "2026-08-02" not in man["empty_days"]
+    assert "2026-08-02" not in man["missing_days"]
+
+
+def test_write_manifest_keeps_legitimately_empty_days(tmp_path):
+    """A date in empty_days that still has no rows must stay in empty_days;
+    the healing purge must not wipe legitimately empty days."""
+    path = tmp_path / "d.parquet"
+    mpath = tmp_path / "manifest.json"
+    mark_crawled_empty(mpath, date(2026, 8, 2))
+    upsert(path, [_rec(1, "a", datetime(2026, 8, 12, 7, 30))])
+    man = write_manifest(path, mpath, date(2026, 8, 1), date(2026, 8, 3))
+    assert man["empty_days"] == ["2026-08-02"]
+
+
 def test_upsert_leaves_no_tmp_file_on_success(tmp_path):
     """A successful upsert should not leave a .tmp file in the data directory."""
     path = tmp_path / "d.parquet"

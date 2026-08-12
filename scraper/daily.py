@@ -49,7 +49,12 @@ def run(paths=None, fetcher=fetch_day, today=None, now=None):
             continue
 
         if not raw:
-            mark_crawled_empty(paths["manifest"], target)
+            # A future target (typically tomorrow) coming back empty usually
+            # means its plan is not published yet, not that it was crawled
+            # and genuinely had no rows. Only record it as empty once it is
+            # not in the future relative to this run's `today`.
+            if target <= today:
+                mark_crawled_empty(paths["manifest"], target)
             empty += 1
             print(f"{target}: empty")
             continue
