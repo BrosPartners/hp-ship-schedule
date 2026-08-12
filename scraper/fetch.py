@@ -85,12 +85,20 @@ def fetch_day(target, cache_dir=DEFAULT_CACHE, delay=1.5, force=False):
             with gzip.open(path, "rt", encoding="utf-8") as fh:
                 cached_html = fh.read()
             if _looks_like_valid_page(cached_html):
-                return cached_html
-            # Poisoned cache file - fall through and refetch.
+                try:
+                    cached_date = parse_header_date(cached_html)
+                except ValueError:
+                    cached_date = None
+                if cached_date == target:
+                    return cached_html
+            # Poisoned cache file (missing header, or header date doesn't
+            # match the requested day - e.g. the midnight-lag bug that
+            # poisoned 79 cache files) - fall through and refetch live.
 
     # Calibrate against the server's clock only now that a live fetch is
     # actually about to happen - a cache hit above returns before this runs.
-    url = f"{BASE_URL}?d={offset_for(target, _server_today())}"
+    offset = offset_for(target, _server_today())
+    url = f"{BASE_URL}?d={offset}"
 
     last_error = None
     for attempt in range(4):
@@ -111,6 +119,13 @@ def fetch_day(target, cache_dir=DEFAULT_CACHE, delay=1.5, force=False):
         raise RuntimeError(
             f"unexpected response from {url}: page is missing its date header; "
             f"first 200 chars: {html[:200]!r}"
+        )
+
+    live_date = parse_header_date(html)
+    if live_date != target:
+        raise RuntimeError(
+            f"day-offset mismatch from {url}: requested {target} (offset {offset}) "
+            f"but the page carries the header date {live_date}"
         )
 
     if cache_dir is not None:

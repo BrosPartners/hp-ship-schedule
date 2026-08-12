@@ -182,11 +182,15 @@ def test_fetch_day_computes_offset_from_server_day_not_local_clock(monkeypatch, 
 
     calls = []
 
+    TARGET_HTML = (
+        "<html><body>KẾ HOẠCH ĐIỀU ĐỘNG TÀU NGÀY 21/08/2026</body></html>"
+    )
+
     def fake_get(url, headers=None, timeout=None):
         calls.append(url)
         if url.endswith("d=0"):
             return _FakeResponse(SERVER_TODAY_HTML)
-        return _FakeResponse(VALID_HTML)
+        return _FakeResponse(TARGET_HTML)
 
     monkeypatch.setattr("scraper.fetch.requests.get", fake_get)
 
@@ -210,7 +214,13 @@ def test_calibration_happens_once_across_multiple_fetch_day_calls(monkeypatch, t
         calls.append(url)
         if url.endswith("d=0"):
             return _FakeResponse(SERVER_TODAY_HTML)
-        return _FakeResponse(VALID_HTML)
+        if url.endswith("d=-10"):
+            return _FakeResponse(
+                "<html><body>KẾ HOẠCH ĐIỀU ĐỘNG TÀU NGÀY 10/08/2026</body></html>"
+            )
+        return _FakeResponse(
+            "<html><body>KẾ HOẠCH ĐIỀU ĐỘNG TÀU NGÀY 11/08/2026</body></html>"
+        )
 
     monkeypatch.setattr("scraper.fetch.requests.get", fake_get)
 
@@ -220,6 +230,54 @@ def test_calibration_happens_once_across_multiple_fetch_day_calls(monkeypatch, t
     calibration_calls = [c for c in calls if c.endswith("d=0")]
     assert len(calibration_calls) == 1
     assert len(calls) == 3  # 1 calibration + 2 live fetches
+
+
+WRONG_DAY_HTML = "<html><body>KẾ HOẠCH ĐIỀU ĐỘNG TÀU NGÀY 11/08/2026</body></html>"
+
+
+def test_fetch_day_self_heals_poisoned_cache_with_wrong_day_header(monkeypatch, tmp_path):
+    """Regression test for the 79-day cache-poisoning defect: a cache file
+    whose header date doesn't match the requested day (e.g. saved under
+    2026-08-12.html.gz but its header says 11/08/2026, from the midnight-
+    lag bug) must be treated as a cache miss, refetched live, and the cache
+    file corrected in place - not permanently rejected by parse_page's
+    DateMismatchError on every subsequent run."""
+    cache_file = tmp_path / "2026-08-12.html.gz"
+    cache_file.parent.mkdir(parents=True, exist_ok=True)
+    with gzip.open(cache_file, "wt", encoding="utf-8") as fh:
+        fh.write(WRONG_DAY_HTML)
+
+    calls = []
+
+    def fake_get(url, headers=None, timeout=None):
+        calls.append(url)
+        return _FakeResponse(VALID_HTML)
+
+    monkeypatch.setattr("scraper.fetch.requests.get", fake_get)
+
+    html = fetch_day(date(2026, 8, 12), cache_dir=tmp_path)
+
+    assert html == VALID_HTML
+    assert len(calls) == 1
+    with gzip.open(cache_file, "rt", encoding="utf-8") as fh:
+        assert fh.read() == VALID_HTML
+
+
+def test_fetch_day_live_response_with_wrong_day_header_raises_and_not_cached(monkeypatch, tmp_path):
+    def fake_get(url, headers=None, timeout=None):
+        return _FakeResponse(WRONG_DAY_HTML)
+
+    monkeypatch.setattr("scraper.fetch.requests.get", fake_get)
+
+    with pytest.raises(Exception) as excinfo:
+        fetch_day(date(2026, 8, 12), cache_dir=tmp_path)
+
+    message = str(excinfo.value)
+    assert "2026-08-12" in message
+    assert "2026-08-11" in message
+
+    cache_file = tmp_path / "2026-08-12.html.gz"
+    assert not cache_file.exists()
 
 
 def test_fetch_day_cache_hit_makes_no_http_request_calibration_included(monkeypatch, tmp_path):
