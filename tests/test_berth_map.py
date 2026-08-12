@@ -97,9 +97,19 @@ def test_external_vn_ports_are_not_type_berth(raw_name):
     )
 
 
-@pytest.mark.skip(
-    reason="full backfill not finished yet; coverage gate runs in Task 7 part 2",
-)
+def test_throughput_predicate_excludes_external_vn_port():
+    """Drives apply_berth_map directly (not just load_berth_map) with a
+    TAN VU -> NGHI SON movement, and asserts on to_type the way Task 8's
+    throughput rule actually reads it (to_type == "berth"). Nghi Son is a
+    Vietnamese port outside Hai Phong, so to_type must be "external", not
+    "berth" -- otherwise this movement would be silently counted as Hai
+    Phong port throughput."""
+    bmap = load_berth_map(MAP_PATH)
+    out = apply_berth_map([_rec("TAN VU", "NGHI SON")], bmap)[0]
+    assert out["to_type"] == "external"
+    assert out["to_type"] != "berth"
+
+
 def test_real_data_coverage_is_at_least_90_percent():
     import pandas as pd
     path = Path(__file__).parent.parent / "data" / "ship_plan.parquet"
