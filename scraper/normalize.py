@@ -167,8 +167,7 @@ def apply_berth_map(records, berth_map):
             rec[f"{side}_type"] = hit["type"] if hit else None
         both_known = src is not None and dst is not None
         rec["is_domestic"] = bool(
-            (both_known and src["type"] != "external" and dst["type"] != "external")
-            or (both_known and src["is_hai_phong"] and dst["is_hai_phong"])
+            (both_known and src["type"] != "foreign" and dst["type"] != "foreign")
             or rec.get("is_sb")
         )
         out.append(rec)

@@ -24,7 +24,7 @@ def test_map_loads_and_is_keyed_uppercase():
     assert "TAN VU" in bmap
     assert bmap["TAN VU"]["type"] == "berth"
     assert bmap["TAN VU"]["is_hai_phong"] is True
-    assert bmap["CHINA"]["type"] == "external"
+    assert bmap["CHINA"]["type"] == "foreign"
     assert bmap["CHINA"]["is_hai_phong"] is False
 
 
@@ -63,6 +63,38 @@ def test_sb_vessel_counts_as_domestic_even_if_unmapped():
     bmap = load_berth_map(MAP_PATH)
     out = apply_berth_map([_rec("ZZZ NOWHERE", "ZZZ ELSEWHERE", is_sb=True)], bmap)[0]
     assert out["is_domestic"] is True
+
+
+def test_domestic_when_one_end_is_a_vietnamese_port_outside_hai_phong():
+    """TAN VU -> NGHI SON is a domestic voyage: Nghi Son is a Vietnamese port
+    outside Hai Phong (type=external), not a foreign port. Conflating the two
+    was the exact defect being fixed here."""
+    bmap = load_berth_map(MAP_PATH)
+    out = apply_berth_map([_rec("TAN VU", "NGHI SON")], bmap)[0]
+    assert out["is_domestic"] is True
+
+
+def test_not_domestic_when_one_end_is_foreign():
+    bmap = load_berth_map(MAP_PATH)
+    out = apply_berth_map([_rec("CHINA", "TAN VU")], bmap)[0]
+    assert out["is_domestic"] is False
+
+
+@pytest.mark.parametrize(
+    "raw_name", ["NINH BINH", "NGHI SON", "CUA LO", "HON LA"]
+)
+def test_external_vn_ports_are_not_type_berth(raw_name):
+    """These are Vietnamese ports outside Hai Phong. If type were ever
+    relabelled 'berth' here, Task 8's throughput rule (to_type == 'berth')
+    would silently count vessels leaving for another province as Hai Phong
+    port throughput -- inflating Hai Phong's numbers with traffic that never
+    called at a Hai Phong quay."""
+    bmap = load_berth_map(MAP_PATH)
+    assert bmap[raw_name]["type"] == "external", (
+        f"{raw_name} must be type=external (Vietnamese port outside Hai Phong), "
+        f"not 'berth' -- otherwise Task 8 throughput counts it as Hai Phong port "
+        f"throughput, inflating the numbers with vessels that left for another province"
+    )
 
 
 @pytest.mark.skip(

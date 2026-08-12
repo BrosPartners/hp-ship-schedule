@@ -13,8 +13,8 @@ VIMC,VIMC Đình Vũ,,true,berth
 CANG 128,Cảng 128,,true,berth
 BACH DANG,Bạch Đằng,,true,berth
 HUY VAN,Huy Vân,,true,berth
-CHINA,Trung Quốc,,false,external
-NINH BINH,Ninh Bình,,false,berth
-NGHI SON,Nghi Sơn,,false,berth
-CUA LO,Cửa Lò,,false,berth
-HON LA,Hòn La,,false,berth
+CHINA,Trung Quốc,,false,foreign
+NINH BINH,Ninh Bình,,false,external
+NGHI SON,Nghi Sơn,,false,external
+CUA LO,Cửa Lò,,false,external
+HON LA,Hòn La,,false,external
