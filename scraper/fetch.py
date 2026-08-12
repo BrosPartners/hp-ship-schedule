@@ -8,6 +8,8 @@ from pathlib import Path
 
 import requests
 
+from scraper.parse import parse_header_date
+
 BASE_URL = "https://csdltau.cangvuhaiphong.gov.vn/pages/ship_plan.aspx"
 USER_AGENT = "hp-ship-schedule/1.0 (research; contact tri.le@brospartners.com)"
 DEFAULT_CACHE = Path(__file__).resolve().parent.parent / "cache"
@@ -36,6 +38,34 @@ def _cache_path(cache_dir, target):
     return Path(cache_dir) / f"{target.isoformat()}.html.gz"
 
 
+# The site interprets `d=<offset>` relative to *its own* idea of today, which
+# can lag a few minutes behind the local machine's midnight rollover. Trusting
+# `date.today()` around that window sends every request off by one day (see
+# the 154-day backfill incident this module was patched for). Calibrating
+# against the server's own `d=0` response avoids that - but only once per
+# process: memoized here so a 1300-day backfill does one calibration request,
+# not one per day.
+_server_today_cache = None
+
+
+def reset_server_today_cache(value=None):
+    """Clear (or force-set) the memoized server day. Exists for tests."""
+    global _server_today_cache
+    _server_today_cache = value
+
+
+def _server_today():
+    """The server's current day, per its own `d=0` response. Memoized."""
+    global _server_today_cache
+    if _server_today_cache is None:
+        url = f"{BASE_URL}?d=0"
+        resp = requests.get(url, headers={"User-Agent": USER_AGENT}, timeout=60)
+        resp.raise_for_status()
+        resp.encoding = resp.apparent_encoding or "utf-8"
+        _server_today_cache = parse_header_date(resp.text)
+    return _server_today_cache
+
+
 def fetch_day(target, cache_dir=DEFAULT_CACHE, delay=1.5, force=False):
     """Return the HTML for `target`, using a gzip cache when available.
 
@@ -49,8 +79,6 @@ def fetch_day(target, cache_dir=DEFAULT_CACHE, delay=1.5, force=False):
     `delay` only throttles after a live fetch; a cache hit returns
     immediately without sleeping.
     """
-    url = f"{BASE_URL}?d={offset_for(target)}"
-
     if cache_dir is not None:
         path = _cache_path(cache_dir, target)
         if path.exists() and not force:
@@ -59,6 +87,10 @@ def fetch_day(target, cache_dir=DEFAULT_CACHE, delay=1.5, force=False):
             if _looks_like_valid_page(cached_html):
                 return cached_html
             # Poisoned cache file - fall through and refetch.
+
+    # Calibrate against the server's clock only now that a live fetch is
+    # actually about to happen - a cache hit above returns before this runs.
+    url = f"{BASE_URL}?d={offset_for(target, _server_today())}"
 
     last_error = None
     for attempt in range(4):
