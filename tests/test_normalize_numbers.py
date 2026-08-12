@@ -13,6 +13,11 @@ from scraper.normalize import parse_vn_number
     ("   ", None),
     (None, None),
     ("n/a", None),
+    # New test cases for dot-as-decimal (rule 3) and validation
+    ("10.5", 10.5),         # 1 digit dot 1 digit - treat as decimal
+    ("12.75", 12.75),       # 2 digits dot 2 digits - treat as decimal
+    ("1.234", 1234.0),      # proper thousands grouping (1-3 + .3) - treat dot as thousands
+    ("1.234.567", 1234567.0),  # multiple thousands groups
 ])
 def test_parse_vn_number(raw, expected):
     assert parse_vn_number(raw) == expected
