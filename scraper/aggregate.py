@@ -161,26 +161,45 @@ def _slippage(raw):
     if len(multi) == 0:
         return {"rows": [], "note": "chưa có dữ liệu nhiều snapshot"}
 
+    def _grouped(snapshot):
+        groups = {}
+        for r in snapshot.itertuples():
+            groups.setdefault((r.vessel_name, r.section), []).append(r)
+        for key, items in groups.items():
+            items.sort(key=lambda r: (r.plan_time is None, r.plan_time))
+        return groups
+
     rows = []
     for plan_date in sorted(multi):
         subset = df[df["plan_date"] == plan_date]
         first = subset[subset["crawl_day"] == subset["crawl_day"].min()]
         last = subset[subset["crawl_day"] == subset["crawl_day"].max()]
-        first_idx = {(r.vessel_name, r.section): r for r in first.itertuples()}
-        last_idx = {(r.vessel_name, r.section): r for r in last.itertuples()}
-        common = set(first_idx) & set(last_idx)
-        changed = sum(
-            1 for k in common
-            if first_idx[k].plan_time != last_idx[k].plan_time
-            or first_idx[k].to_raw != last_idx[k].to_raw
-        )
+        first_groups = _grouped(first)
+        last_groups = _grouped(last)
+
+        matched = 0
+        changed = 0
+        dropped = 0
+        added = 0
+        for key in set(first_groups) | set(last_groups):
+            first_list = first_groups.get(key, [])
+            last_list = last_groups.get(key, [])
+            n = min(len(first_list), len(last_list))
+            matched += n
+            for i in range(n):
+                a, b = first_list[i], last_list[i]
+                if a.plan_time != b.plan_time or a.to_raw != b.to_raw:
+                    changed += 1
+            dropped += len(first_list) - n
+            added += len(last_list) - n
+
         rows.append({
             "plan_date": str(plan_date),
-            "matched": len(common),
+            "matched": matched,
             "changed": changed,
-            "dropped": len(set(first_idx) - set(last_idx)),
-            "added": len(set(last_idx) - set(first_idx)),
-            "pct_changed": round(100 * changed / len(common), 2) if common else None,
+            "dropped": dropped,
+            "added": added,
+            "pct_changed": round(100 * changed / matched, 2) if matched else None,
         })
     return {"rows": rows, "note": None}
 

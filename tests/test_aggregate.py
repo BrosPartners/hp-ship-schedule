@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from scraper.aggregate import build_all, throughput_rows
+from scraper.aggregate import _slippage, build_all, throughput_rows
 from scraper.store import SCHEMA_COLUMNS
 
 
@@ -86,6 +86,75 @@ def test_only_latest_snapshot_feeds_the_aggregates(tmp_path):
     build_all(parquet, tmp_path / "agg")
     data = json.loads((tmp_path / "agg" / "monthly_volume.json").read_text(encoding="utf-8"))
     assert next(r for r in data["rows"] if r["month"] == "2026-08")["calls"] == 1
+
+
+def test_slippage_same_vessel_section_collision_matches_positionally():
+    """Three same-day movements of one vessel in one section must not
+    collapse to a single match under a (vessel_name, section) dict key."""
+    d = date(2026, 8, 11)
+    early = datetime(2026, 8, 11)
+    late = datetime(2026, 8, 12)
+    rows = []
+    for i, t in enumerate([6, 10, 14]):
+        rows.append(_row(row_key=f"a{i}", plan_date=d, section="di_chuyen",
+                          plan_time=datetime(2026, 8, 11, t, 0),
+                          to_raw=f"BERTH{i}", crawled_at=early))
+    for i, t in enumerate([6, 11, 14]):  # second movement's time changed
+        rows.append(_row(row_key=f"b{i}", plan_date=d, section="di_chuyen",
+                          plan_time=datetime(2026, 8, 11, t, 0),
+                          to_raw=f"BERTH{i}", crawled_at=late))
+    df = _df(rows)
+    result = _slippage(df)
+    row = result["rows"][0]
+    assert row["matched"] == 3
+    assert row["changed"] == 1
+
+
+def test_slippage_shrinking_key_counts_dropped_without_crashing():
+    d = date(2026, 8, 11)
+    early = datetime(2026, 8, 11)
+    late = datetime(2026, 8, 12)
+    rows = []
+    for i, t in enumerate([6, 10, 14]):
+        rows.append(_row(row_key=f"a{i}", plan_date=d, section="di_chuyen",
+                          plan_time=datetime(2026, 8, 11, t, 0),
+                          to_raw=f"BERTH{i}", crawled_at=early))
+    for i, t in enumerate([6, 10]):
+        rows.append(_row(row_key=f"b{i}", plan_date=d, section="di_chuyen",
+                          plan_time=datetime(2026, 8, 11, t, 0),
+                          to_raw=f"BERTH{i}", crawled_at=late))
+    df = _df(rows)
+    result = _slippage(df)
+    row = result["rows"][0]
+    assert row["matched"] == 2
+    assert row["dropped"] == 1
+
+
+def test_slippage_growing_key_counts_added():
+    d = date(2026, 8, 11)
+    early = datetime(2026, 8, 11)
+    late = datetime(2026, 8, 12)
+    rows = []
+    for i, t in enumerate([6, 10]):
+        rows.append(_row(row_key=f"a{i}", plan_date=d, section="di_chuyen",
+                          plan_time=datetime(2026, 8, 11, t, 0),
+                          to_raw=f"BERTH{i}", crawled_at=early))
+    for i, t in enumerate([6, 10, 14]):
+        rows.append(_row(row_key=f"b{i}", plan_date=d, section="di_chuyen",
+                          plan_time=datetime(2026, 8, 11, t, 0),
+                          to_raw=f"BERTH{i}", crawled_at=late))
+    df = _df(rows)
+    result = _slippage(df)
+    row = result["rows"][0]
+    assert row["matched"] == 2
+    assert row["added"] == 1
+
+
+def test_slippage_single_snapshot_still_short_circuits():
+    df = _df([_row(row_key="a")])
+    result = _slippage(df)
+    assert result["rows"] == []
+    assert result["note"] == "chưa có dữ liệu nhiều snapshot"
 
 
 def test_filters_json_lists_berths_and_range(tmp_path):
