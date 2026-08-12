@@ -12,7 +12,7 @@ from pathlib import Path
 import pandas as pd
 
 from scraper.fetch import fetch_day
-from scraper.normalize import build_records
+from scraper.normalize import apply_berth_map, build_records, load_berth_map
 from scraper.parse import parse_page
 from scraper.store import load, mark_crawled_empty, upsert, write_manifest
 
@@ -49,6 +49,8 @@ def run(start, end, paths=None, fetcher=fetch_day, now=None):
     paths = paths or DEFAULT_PATHS
     crawled_at = now or datetime.now()
     todo = days_to_do(start, end, paths["manifest"], paths["parquet"])
+    map_path = ROOT / "data" / "berth_map.csv"
+    berth_map = load_berth_map(map_path) if map_path.exists() else None
 
     done, empty, failed, rows = 0, 0, [], 0
     for target in todo:
@@ -62,7 +64,10 @@ def run(start, end, paths=None, fetcher=fetch_day, now=None):
                 print(f"{target}: empty")
                 continue
 
-            written = upsert(paths["parquet"], build_records(raw, crawled_at))
+            records = build_records(raw, crawled_at)
+            if berth_map is not None:
+                records = apply_berth_map(records, berth_map)
+            written = upsert(paths["parquet"], records)
             rows += written
             done += 1
             print(f"{target}: {written} rows")

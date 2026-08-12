@@ -218,6 +218,28 @@ def test_upsert_persistent_permission_error_names_file_and_preserves_data(
     assert not tmp_file.exists()
 
 
+def test_upsert_tolerates_records_missing_berth_columns(tmp_path):
+    """Records with only the original 17 keys (no berth_map columns) must
+    still upsert successfully, with the seven berth columns present and
+    null in the stored result."""
+    path = tmp_path / "d.parquet"
+    rec = _rec(11, "a", datetime(2026, 8, 11, 7, 30))
+    assert set(rec) & {
+        "from_berth", "to_berth", "from_ticker", "to_ticker",
+        "from_type", "to_type", "is_domestic",
+    } == set()
+
+    written = upsert(path, [rec])
+    assert written == 1
+
+    df = load(path)
+    assert len(df) == 1
+    for col in ("from_berth", "to_berth", "from_ticker", "to_ticker",
+                "from_type", "to_type", "is_domestic"):
+        assert col in df.columns
+        assert pd.isna(df.iloc[0][col])
+
+
 def test_upsert_cleanup_failure_does_not_mask_original_exception(
     tmp_path, monkeypatch
 ):

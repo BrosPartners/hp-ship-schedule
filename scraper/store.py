@@ -47,7 +47,9 @@ def _cleanup_tmp(tmp_path):
 SCHEMA_COLUMNS = [
     "plan_date", "section", "plan_time", "vessel_name", "is_sb",
     "draft_m", "loa_m", "dwt", "gt", "tugs", "channel_code",
-    "from_raw", "to_raw", "agent", "pilot", "crawled_at", "row_key",
+    "from_raw", "to_raw", "from_berth", "to_berth",
+    "from_ticker", "to_ticker", "from_type", "to_type", "is_domestic",
+    "agent", "pilot", "crawled_at", "row_key",
 ]
 
 
@@ -67,7 +69,11 @@ def upsert(parquet_path, records):
     path = Path(parquet_path)
     if not records:
         return 0
-    incoming = pd.DataFrame(records)[SCHEMA_COLUMNS]
+    incoming = pd.DataFrame(records)
+    for column in SCHEMA_COLUMNS:
+        if column not in incoming.columns:
+            incoming[column] = None
+    incoming = incoming[SCHEMA_COLUMNS]
     existing = load(path)
 
     if not existing.empty:
