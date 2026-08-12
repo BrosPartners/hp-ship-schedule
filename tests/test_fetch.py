@@ -1,5 +1,10 @@
+import gzip
 from datetime import date
-from scraper.fetch import offset_for
+from pathlib import Path
+
+import pytest
+
+from scraper.fetch import offset_for, fetch_day
 
 
 def test_offset_for_is_relative_to_today():
@@ -11,3 +16,147 @@ def test_offset_for_is_relative_to_today():
     assert offset_for(date(2022, 12, 31), today) == -1320
     # Verified: d=-2000 -> 19/02/2021
     assert offset_for(date(2021, 2, 19), today) == -2000
+
+
+VALID_HTML = "<html><body>KẾ HOẠCH ĐIỀU ĐỘNG TÀU NGÀY 12/08/2026</body></html>"
+INVALID_HTML = "<html><body>Access Denied - please enable JavaScript</body></html>"
+
+
+class _FakeResponse:
+    def __init__(self, text, status_code=200):
+        self.text = text
+        self.status_code = status_code
+        self.apparent_encoding = "utf-8"
+        self.encoding = "utf-8"
+
+    def raise_for_status(self):
+        if self.status_code >= 400:
+            raise Exception(f"HTTP {self.status_code}")
+
+
+@pytest.fixture(autouse=True)
+def no_real_sleep(monkeypatch):
+    monkeypatch.setattr("scraper.fetch.time.sleep", lambda *_a, **_k: None)
+
+
+def test_fetch_day_writes_cache_and_returns_html(monkeypatch, tmp_path):
+    calls = []
+
+    def fake_get(url, headers=None, timeout=None):
+        calls.append(url)
+        return _FakeResponse(VALID_HTML)
+
+    monkeypatch.setattr("scraper.fetch.requests.get", fake_get)
+
+    html = fetch_day(date(2026, 8, 12), cache_dir=tmp_path)
+
+    assert html == VALID_HTML
+    assert len(calls) == 1
+    cache_file = tmp_path / "2026-08-12.html.gz"
+    assert cache_file.exists()
+    with gzip.open(cache_file, "rt", encoding="utf-8") as fh:
+        assert fh.read() == VALID_HTML
+
+
+def test_fetch_day_second_call_uses_cache_not_network(monkeypatch, tmp_path):
+    calls = []
+
+    def fake_get(url, headers=None, timeout=None):
+        calls.append(url)
+        return _FakeResponse(VALID_HTML)
+
+    monkeypatch.setattr("scraper.fetch.requests.get", fake_get)
+
+    fetch_day(date(2026, 8, 12), cache_dir=tmp_path)
+    html = fetch_day(date(2026, 8, 12), cache_dir=tmp_path)
+
+    assert html == VALID_HTML
+    assert len(calls) == 1
+
+
+def test_fetch_day_force_bypasses_cache(monkeypatch, tmp_path):
+    calls = []
+
+    def fake_get(url, headers=None, timeout=None):
+        calls.append(url)
+        return _FakeResponse(VALID_HTML)
+
+    monkeypatch.setattr("scraper.fetch.requests.get", fake_get)
+
+    fetch_day(date(2026, 8, 12), cache_dir=tmp_path)
+    fetch_day(date(2026, 8, 12), cache_dir=tmp_path, force=True)
+
+    assert len(calls) == 2
+
+
+def test_fetch_day_missing_date_header_raises_and_leaves_no_cache(monkeypatch, tmp_path):
+    def fake_get(url, headers=None, timeout=None):
+        return _FakeResponse(INVALID_HTML)
+
+    monkeypatch.setattr("scraper.fetch.requests.get", fake_get)
+
+    with pytest.raises(Exception) as excinfo:
+        fetch_day(date(2026, 8, 12), cache_dir=tmp_path)
+
+    message = str(excinfo.value)
+    assert "http" in message.lower() or "csdltau" in message.lower()
+    assert INVALID_HTML[:50] in message
+
+    cache_file = tmp_path / "2026-08-12.html.gz"
+    assert not cache_file.exists()
+
+
+def test_fetch_day_refetches_when_cache_content_is_invalid(monkeypatch, tmp_path):
+    cache_file = tmp_path / "2026-08-12.html.gz"
+    cache_file.parent.mkdir(parents=True, exist_ok=True)
+    with gzip.open(cache_file, "wt", encoding="utf-8") as fh:
+        fh.write(INVALID_HTML)
+
+    calls = []
+
+    def fake_get(url, headers=None, timeout=None):
+        calls.append(url)
+        return _FakeResponse(VALID_HTML)
+
+    monkeypatch.setattr("scraper.fetch.requests.get", fake_get)
+
+    html = fetch_day(date(2026, 8, 12), cache_dir=tmp_path)
+
+    assert html == VALID_HTML
+    assert len(calls) == 1
+    with gzip.open(cache_file, "rt", encoding="utf-8") as fh:
+        assert fh.read() == VALID_HTML
+
+
+def test_fetch_day_retries_transient_failure_then_succeeds(monkeypatch, tmp_path):
+    attempts = {"n": 0}
+
+    def fake_get(url, headers=None, timeout=None):
+        attempts["n"] += 1
+        if attempts["n"] < 3:
+            raise Exception("connection reset")
+        return _FakeResponse(VALID_HTML)
+
+    monkeypatch.setattr("scraper.fetch.requests.get", fake_get)
+
+    html = fetch_day(date(2026, 8, 12), cache_dir=tmp_path)
+
+    assert html == VALID_HTML
+    assert attempts["n"] == 3
+
+
+def test_fetch_day_persistent_failure_raises_after_exhausting_attempts(monkeypatch, tmp_path):
+    attempts = {"n": 0}
+
+    def fake_get(url, headers=None, timeout=None):
+        attempts["n"] += 1
+        raise Exception("connection reset")
+
+    monkeypatch.setattr("scraper.fetch.requests.get", fake_get)
+
+    with pytest.raises(RuntimeError):
+        fetch_day(date(2026, 8, 12), cache_dir=tmp_path)
+
+    assert attempts["n"] == 4
+    cache_file = tmp_path / "2026-08-12.html.gz"
+    assert not cache_file.exists()
