@@ -45,12 +45,19 @@ def days_to_do(start, end, manifest_path, parquet_path):
     return todo
 
 
-def run(start, end, paths=None, fetcher=fetch_day, now=None):
+def run(start, end, paths=None, fetcher=fetch_day, now=None, berth_map_path=None):
     paths = paths or DEFAULT_PATHS
     crawled_at = now or datetime.now()
+    map_path = Path(berth_map_path) if berth_map_path is not None else ROOT / "data" / "berth_map.csv"
+    if not map_path.exists():
+        raise FileNotFoundError(
+            f"Berth map not found at {map_path}. Ingesting without it would "
+            "silently zero out berth attribution (from_berth/to_berth/"
+            "from_ticker/to_ticker/from_type/to_type/is_domestic) for every "
+            "record in this run."
+        )
+    berth_map = load_berth_map(map_path)
     todo = days_to_do(start, end, paths["manifest"], paths["parquet"])
-    map_path = ROOT / "data" / "berth_map.csv"
-    berth_map = load_berth_map(map_path) if map_path.exists() else None
 
     done, empty, failed, rows = 0, 0, [], 0
     for target in todo:
@@ -65,8 +72,7 @@ def run(start, end, paths=None, fetcher=fetch_day, now=None):
                 continue
 
             records = build_records(raw, crawled_at)
-            if berth_map is not None:
-                records = apply_berth_map(records, berth_map)
+            records = apply_berth_map(records, berth_map)
             written = upsert(paths["parquet"], records)
             rows += written
             done += 1

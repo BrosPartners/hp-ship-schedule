@@ -2,10 +2,13 @@ import gzip
 from datetime import date, datetime
 from pathlib import Path
 
+import pytest
+
 from scraper.backfill import days_to_do, run
 from scraper.store import load
 
 FIXTURES = Path(__file__).parent / "fixtures"
+BERTH_MAP = Path(__file__).parent.parent / "data" / "berth_map.csv"
 
 
 def _html(name):
@@ -102,3 +105,39 @@ def test_a_storage_failure_is_recorded_and_does_not_abort_the_run(
     assert result["days_failed"] == [date(2026, 8, 10)]
     assert result["days_done"] == 1
     assert len(load(paths["parquet"])) == 1
+
+
+def test_run_applies_berth_map_to_stored_rows(tmp_path):
+    paths = {"parquet": tmp_path / "d.parquet", "manifest": tmp_path / "m.json"}
+    run(
+        date(2026, 8, 11), date(2026, 8, 11), paths,
+        fetcher=lambda target: _html("2026-08-11_full"),
+        now=datetime(2026, 8, 12, 7, 30),
+        berth_map_path=BERTH_MAP,
+    )
+    df = load(paths["parquet"])
+    assert df["to_berth"].notna().any()
+
+    tan_vu = df[df["to_raw"].str.upper() == "TAN VU"]
+    assert not tan_vu.empty
+    assert (tan_vu["to_berth"] == "Tân Vũ").all()
+    assert (tan_vu["to_type"] == "berth").all()
+
+
+def test_run_raises_before_fetching_when_berth_map_missing(tmp_path):
+    paths = {"parquet": tmp_path / "d.parquet", "manifest": tmp_path / "m.json"}
+    calls = {"n": 0}
+
+    def fetcher(target):
+        calls["n"] += 1
+        return _html("2026-08-11_full")
+
+    with pytest.raises(Exception):
+        run(
+            date(2026, 8, 11), date(2026, 8, 11), paths,
+            fetcher=fetcher,
+            now=datetime(2026, 8, 12, 7, 30),
+            berth_map_path=tmp_path / "missing_berth_map.csv",
+        )
+
+    assert calls["n"] == 0
