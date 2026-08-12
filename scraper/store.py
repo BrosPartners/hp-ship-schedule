@@ -2,10 +2,47 @@
 
 import json
 import os
+import time
 from datetime import date, timedelta
 from pathlib import Path
 
 import pandas as pd
+
+_REPLACE_RETRY_DELAYS = (0.1, 0.2, 0.4, 0.8)
+
+
+def _atomic_replace(tmp_path, dest_path):
+    """Replace `dest_path` with `tmp_path`, retrying on transient locks.
+
+    On Windows, os.replace can fail with PermissionError/OSError when
+    something else (e.g. an antivirus scanner or the search indexer)
+    transiently holds the destination file open. Retry a few times with a
+    short escalating backoff before giving up.
+    """
+    last_exc = None
+    for attempt, delay in enumerate((0.0,) + _REPLACE_RETRY_DELAYS):
+        if delay:
+            time.sleep(delay)
+        try:
+            os.replace(tmp_path, dest_path)
+            return
+        except (PermissionError, OSError) as exc:
+            last_exc = exc
+    raise OSError(
+        f"Could not replace {dest_path}: it appears to be locked by another "
+        f"process (e.g. an antivirus scanner or search indexer). "
+        f"Last error: {last_exc}"
+    ) from last_exc
+
+
+def _cleanup_tmp(tmp_path):
+    """Best-effort removal of a leftover temp file. Never raises."""
+    try:
+        if tmp_path.exists():
+            tmp_path.unlink()
+    except OSError:
+        pass
+
 
 SCHEMA_COLUMNS = [
     "plan_date", "section", "plan_time", "vessel_name", "is_sb",
@@ -55,11 +92,10 @@ def upsert(parquet_path, records):
     tmp_path = Path(str(path) + ".tmp")
     try:
         merged.to_parquet(tmp_path, index=False, compression="zstd")
-        os.replace(tmp_path, path)
+        _atomic_replace(tmp_path, path)
     except Exception:
-        # Clean up temp file if it exists and re-raise the exception
-        if tmp_path.exists():
-            tmp_path.unlink()
+        # Clean up temp file defensively and re-raise the original exception.
+        _cleanup_tmp(tmp_path)
         raise
 
     return len(incoming)
@@ -99,11 +135,10 @@ def mark_crawled_empty(manifest_path, plan_date):
         tmp_path.write_text(
             json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8"
         )
-        os.replace(tmp_path, manifest_path_obj)
+        _atomic_replace(tmp_path, manifest_path_obj)
     except Exception:
-        # Clean up temp file if it exists and re-raise the exception
-        if tmp_path.exists():
-            tmp_path.unlink()
+        # Clean up temp file defensively and re-raise the original exception.
+        _cleanup_tmp(tmp_path)
         raise
 
 
@@ -144,11 +179,10 @@ def write_manifest(parquet_path, manifest_path, start_date, today):
         tmp_path.write_text(
             json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8"
         )
-        os.replace(tmp_path, manifest_path_obj)
+        _atomic_replace(tmp_path, manifest_path_obj)
     except Exception:
-        # Clean up temp file if it exists and re-raise the exception
-        if tmp_path.exists():
-            tmp_path.unlink()
+        # Clean up temp file defensively and re-raise the original exception.
+        _cleanup_tmp(tmp_path)
         raise
 
     return manifest

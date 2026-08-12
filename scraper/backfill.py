@@ -55,21 +55,21 @@ def run(start, end, paths=None, fetcher=fetch_day, now=None):
         try:
             html = fetcher(target)
             raw = parse_page(html, expected_date=target)
+
+            if not raw:
+                mark_crawled_empty(paths["manifest"], target)
+                empty += 1
+                print(f"{target}: empty")
+                continue
+
+            written = upsert(paths["parquet"], build_records(raw, crawled_at))
+            rows += written
+            done += 1
+            print(f"{target}: {written} rows")
         except Exception as exc:                     # noqa: BLE001
             print(f"{target}: FAILED {exc}")
             failed.append(target)
             continue
-
-        if not raw:
-            mark_crawled_empty(paths["manifest"], target)
-            empty += 1
-            print(f"{target}: empty")
-            continue
-
-        written = upsert(paths["parquet"], build_records(raw, crawled_at))
-        rows += written
-        done += 1
-        print(f"{target}: {written} rows")
 
     write_manifest(paths["parquet"], paths["manifest"], start, end)
     return {"days_done": done, "days_empty": empty,

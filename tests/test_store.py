@@ -1,4 +1,5 @@
 import json
+import os
 from datetime import date, datetime
 from pathlib import Path
 
@@ -152,3 +153,87 @@ def test_write_manifest_preserves_manifest_on_failure(tmp_path, monkeypatch):
     # Verify no .tmp file left behind
     tmp_file = tmp_path / "manifest.json.tmp"
     assert not tmp_file.exists()
+
+
+def test_upsert_retries_transient_permission_error_then_succeeds(tmp_path, monkeypatch):
+    """A transient PermissionError on os.replace (e.g. AV/indexer holding the
+    file open) should be retried and the write should still succeed."""
+    path = tmp_path / "d.parquet"
+    upsert(path, [_rec(11, "a", datetime(2026, 8, 11, 7, 30))])
+
+    calls = {"n": 0}
+    real_replace = os.replace
+
+    def flaky_replace(src, dst):
+        calls["n"] += 1
+        if calls["n"] < 3:
+            raise PermissionError(
+                "[WinError 32] The process cannot access the file because it "
+                "is being used by another process"
+            )
+        return real_replace(src, dst)
+
+    monkeypatch.setattr("scraper.store.os.replace", flaky_replace)
+    monkeypatch.setattr("scraper.store.time.sleep", lambda *a, **k: None)
+
+    written = upsert(path, [_rec(12, "b", datetime(2026, 8, 12, 7, 30))])
+    assert written == 1
+    assert calls["n"] == 3
+
+    df = load(path)
+    assert len(df) == 2
+    assert set(df["row_key"]) == {"a", "b"}
+
+    tmp_file = tmp_path / "d.parquet.tmp"
+    assert not tmp_file.exists()
+
+
+def test_upsert_persistent_permission_error_names_file_and_preserves_data(
+    tmp_path, monkeypatch
+):
+    """If os.replace never succeeds, raise an informative error naming the
+    target file, leave the existing file untouched, and clean up the tmp
+    file."""
+    path = tmp_path / "d.parquet"
+    upsert(path, [_rec(11, "a", datetime(2026, 8, 11, 7, 30))])
+    original_content = path.read_bytes()
+
+    def always_fails(src, dst):
+        raise PermissionError(
+            "[WinError 32] The process cannot access the file because it "
+            "is being used by another process"
+        )
+
+    monkeypatch.setattr("scraper.store.os.replace", always_fails)
+    monkeypatch.setattr("scraper.store.time.sleep", lambda *a, **k: None)
+
+    with pytest.raises(Exception) as excinfo:
+        upsert(path, [_rec(12, "b", datetime(2026, 8, 12, 7, 30))])
+
+    assert str(path) in str(excinfo.value)
+
+    assert path.read_bytes() == original_content
+
+    tmp_file = tmp_path / "d.parquet.tmp"
+    assert not tmp_file.exists()
+
+
+def test_upsert_cleanup_failure_does_not_mask_original_exception(
+    tmp_path, monkeypatch
+):
+    """If the unlink cleanup itself raises, the original exception type must
+    still surface, not the cleanup failure."""
+    path = tmp_path / "d.parquet"
+    upsert(path, [_rec(11, "a", datetime(2026, 8, 11, 7, 30))])
+
+    def failing_to_parquet(self, *args, **kwargs):
+        raise IOError("Simulated write failure")
+
+    def failing_unlink(self, *args, **kwargs):
+        raise OSError("Simulated cleanup failure")
+
+    monkeypatch.setattr(pd.DataFrame, "to_parquet", failing_to_parquet)
+    monkeypatch.setattr(Path, "unlink", failing_unlink)
+
+    with pytest.raises(IOError, match="Simulated write failure"):
+        upsert(path, [_rec(12, "b", datetime(2026, 8, 12, 7, 30))])
