@@ -1,6 +1,8 @@
 """Turn raw scraped strings into typed values."""
 
+import hashlib
 import re
+from datetime import datetime
 
 
 def parse_vn_number(raw):
@@ -51,3 +53,74 @@ def parse_vn_number(raw):
         return float(s)
     except ValueError:
         return None
+
+
+_SB_RE = re.compile(r"\s*\(SB\)\s*$", re.IGNORECASE)
+_TIME_RE = re.compile(r"^(\d{1,2}):(\d{2})$")
+
+
+def split_sb(vessel_raw):
+    """Split the '(SB)' suffix off a vessel name.
+
+    '(SB)' marks a VR-SB river-sea vessel, which is a useful domestic-traffic
+    proxy, so it is kept as a boolean rather than left inside the name.
+    """
+    name = (vessel_raw or "").strip()
+    is_sb = bool(_SB_RE.search(name))
+    return _SB_RE.sub("", name).strip(), is_sb
+
+
+def _to_int(raw):
+    value = parse_vn_number(raw)
+    return None if value is None else int(round(value))
+
+
+def _plan_time(plan_date, raw):
+    match = _TIME_RE.match((raw or "").strip())
+    if not match:
+        return None
+    hour, minute = int(match.group(1)), int(match.group(2))
+    if hour > 23 or minute > 59:
+        return None
+    return datetime(plan_date.year, plan_date.month, plan_date.day, hour, minute)
+
+
+def _row_key(rec):
+    """Identity of a movement, independent of when it was crawled."""
+    parts = [
+        rec["plan_date"].isoformat(),
+        rec["section"],
+        rec["vessel_name"],
+        rec["plan_time"].isoformat() if rec["plan_time"] else "",
+        rec["from_raw"] or "",
+        rec["to_raw"] or "",
+    ]
+    return hashlib.sha1("|".join(parts).encode("utf-8")).hexdigest()[:16]
+
+
+def build_records(raw_rows, crawled_at):
+    """Convert raw string rows from parse_page into typed records."""
+    records = []
+    for row in raw_rows:
+        vessel_name, is_sb = split_sb(row.get("vessel"))
+        rec = {
+            "plan_date": row["plan_date"],
+            "section": row["section"],
+            "plan_time": _plan_time(row["plan_date"], row.get("time")),
+            "vessel_name": vessel_name,
+            "is_sb": is_sb,
+            "draft_m": parse_vn_number(row.get("draft")),
+            "loa_m": parse_vn_number(row.get("loa")),
+            "dwt": _to_int(row.get("dwt")),
+            "gt": _to_int(row.get("gt")),
+            "tugs": (row.get("tugs") or None) or None,
+            "channel_code": (row.get("channel") or None) or None,
+            "from_raw": (row.get("from") or None) or None,
+            "to_raw": (row.get("to") or None) or None,
+            "agent": (row.get("agent") or None) or None,
+            "pilot": (row.get("pilot") or None) or None,
+            "crawled_at": crawled_at,
+        }
+        rec["row_key"] = _row_key(rec)
+        records.append(rec)
+    return records
