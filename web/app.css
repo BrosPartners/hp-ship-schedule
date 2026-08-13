@@ -1,0 +1,42 @@
+:root {
+  --bg: #ffffff; --fg: #16202a; --muted: #667685;
+  --line: #dfe6ec; --accent: #0066cc;
+  --warn-bg: #fff6e0; --warn-fg: #7a5200;
+  --err-bg: #fdecec; --err-fg: #a11a1a;
+}
+* { box-sizing: border-box; }
+body { margin: 0; font: 14px/1.5 system-ui, "Segoe UI", sans-serif;
+       color: var(--fg); background: var(--bg); }
+header { display: flex; align-items: center; gap: 16px;
+         padding: 12px 20px; border-bottom: 1px solid var(--line); }
+h1 { font-size: 18px; margin: 0; }
+.badge { padding: 4px 10px; border-radius: 999px; font-size: 12px;
+         background: #eef4f9; color: var(--muted); }
+.badge.warn { background: var(--warn-bg); color: var(--warn-fg); }
+.badge.err  { background: var(--err-bg);  color: var(--err-fg); }
+nav.tabs { display: flex; gap: 4px; padding: 8px 20px;
+           border-bottom: 1px solid var(--line); }
+nav.tabs button { border: 1px solid var(--line); background: none;
+                  padding: 6px 14px; border-radius: 6px; cursor: pointer; }
+nav.tabs button.active { background: var(--accent); color: #fff;
+                         border-color: var(--accent); }
+main { padding: 16px 20px 48px; }
+.filters { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end;
+           margin-bottom: 12px; }
+.filters label { display: flex; flex-direction: column; font-size: 12px;
+                 color: var(--muted); gap: 4px; }
+.filters input, .filters select { padding: 5px 7px; border: 1px solid var(--line);
+                                  border-radius: 5px; font: inherit; }
+.scroller { height: 62vh; overflow: auto; border: 1px solid var(--line);
+            border-radius: 6px; }
+table.grid { border-collapse: collapse; width: 100%; font-size: 13px; }
+table.grid th { position: sticky; top: 0; background: #dce7ed;
+                text-align: left; padding: 6px 8px; }
+table.grid td { padding: 5px 8px; border-top: 1px solid var(--line);
+                white-space: nowrap; }
+.num { text-align: right; font-variant-numeric: tabular-nums; }
+.chart { height: 380px; margin-bottom: 28px; }
+.chart-head { display: flex; justify-content: space-between;
+              align-items: baseline; margin-bottom: 4px; }
+.chart-head h3 { margin: 0; font-size: 15px; }
+.chart-head button { font-size: 12px; margin-left: 6px; }
