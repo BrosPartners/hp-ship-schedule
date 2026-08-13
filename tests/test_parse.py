@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 from scraper.parse import (
+    SECTIONS,
     DateMismatchError,
     UnknownSectionError,
     parse_header_date,
@@ -90,6 +91,30 @@ def test_renamed_caption_raises_instead_of_silently_dropping_rows():
     assert altered != html, "fixture no longer contains the caption text expected"
     with pytest.raises(UnknownSectionError):
         parse_page(altered, expected_date=date(2026, 8, 11))
+
+
+def test_renamed_later_caption_raises_instead_of_misfiling_rows():
+    """If a LATER section's heading is renamed, the backward walk in
+    `_section_of` must not silently match the PREVIOUS section's heading
+    instead - that would mis-file the table's rows under the wrong section
+    (e.g. vao_cang rows recorded as di_chuyen) without ever raising, quietly
+    corrupting the throughput number. Two cssTD tables resolving to the same
+    section on one page must raise."""
+    html = load("2026-08-11_full")
+    altered = html.replace("Kế hoạch tàu vào cảng",
+                            "Kế hoạch tàu vào cảng mới", 1)
+    assert altered != html, "fixture no longer contains the caption text expected"
+    with pytest.raises(UnknownSectionError):
+        parse_page(altered, expected_date=date(2026, 8, 11))
+
+
+def test_missing_section_with_fewer_tables_than_known_sections_still_parses():
+    """A page with fewer cssTD tables than known sections (no duplicate
+    resolution) must still parse successfully - only two tables resolving to
+    the SAME section is an error, not simply having fewer tables."""
+    rows = parse_page(load("2021-02-19_3tables"))
+    sections = {r["section"] for r in rows}
+    assert sections and sections.issubset(set(SECTIONS))
 
 
 def test_empty_day_yields_no_rows():

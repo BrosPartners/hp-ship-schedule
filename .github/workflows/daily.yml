@@ -9,6 +9,14 @@ permissions:
   contents: write
   issues: write
 
+# A manual workflow_dispatch overlapping the cron schedule, or any other
+# concurrent commit landing on master, must not race this job's `git push`.
+# Queue overlapping runs rather than cancel one: cancelling a live crawl
+# mid-write could leave a partial data commit.
+concurrency:
+  group: daily-crawl
+  cancel-in-progress: false
+
 jobs:
   crawl:
     runs-on: ubuntu-latest
@@ -37,7 +45,25 @@ jobs:
             echo "no data changes"
           else
             git commit -m "data: daily crawl $(date -u +%Y-%m-%d)"
-            git push
+            # The concurrency group above should make this rare, but guard
+            # against a racing commit anyway (e.g. a manual dispatch run
+            # that started just before this one, or any other push to
+            # master): rebase onto the latest master and retry a few times
+            # rather than fail on a bare push. A real crawl failure (script
+            # error, parse failure, etc.) happens well before this step and
+            # is unaffected - this only guards the push-collision case.
+            for attempt in 1 2 3 4 5; do
+              if git push; then
+                break
+              fi
+              if [ "$attempt" -eq 5 ]; then
+                echo "push failed after 5 attempts" >&2
+                exit 1
+              fi
+              echo "push rejected (attempt $attempt), rebasing onto latest master and retrying"
+              git fetch origin master
+              git rebase origin/master
+            done
           fi
 
       - name: Open an issue if the crawl failed

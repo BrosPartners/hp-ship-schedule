@@ -40,8 +40,16 @@ export async function initFreshness(el) {
     const [manifest, coverage] = await Promise.all([loadManifest(),
                                                      loadJSON("coverage")]);
     const last = manifest.last_plan_date;
-    const ageDays = last
-      ? Math.floor((Date.now() - new Date(last).getTime()) / 86400000)
+    // Staleness must reflect whether the pipeline itself is still alive, not
+    // the plan date it last fetched: `last_plan_date` is always "tomorrow"
+    // (the job stores tomorrow's plan), so computing age from it starts at
+    // -1 and the red banner only ever appears after ~4 days of total crawl
+    // failure. `last_crawled_at` is the actual "is the pipeline alive"
+    // signal - it is written every run but was never read until now. The
+    // badge text still shows `last` (the data date), unchanged.
+    const lastCrawledAt = manifest.last_crawled_at;
+    const ageDays = lastCrawledAt
+      ? Math.floor((Date.now() - new Date(lastCrawledAt).getTime()) / 86400000)
       : Infinity;
 
     if (ageDays > 2) {

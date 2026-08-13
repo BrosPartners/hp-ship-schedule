@@ -39,7 +39,18 @@ COLUMNS = {
 
 _ALL_KEYS = _WIDE  # superset; narrow rows get None for the missing keys
 
-_DATE_RE = re.compile(r"NG[ÀA]Y\s*(\d{2})/(\d{2})/(\d{4})", re.IGNORECASE)
+# Anchored to the full header phrase "KẾ HOẠCH ĐIỀU ĐỘNG TÀU NGÀY dd/mm/yyyy"
+# (diacritics-tolerant), not just "NGÀY dd/mm/yyyy" on its own. Both the
+# poisoned-cache check (fetch.py) and the day-offset guard (DateMismatchError
+# below) depend on this reading the header specifically - a stray occurrence
+# of "NGÀY dd/mm/yyyy" elsewhere on the page (e.g. inside a data cell) must
+# not be able to satisfy either check. Verified to still match all 5 fixture
+# HTML files' header unchanged.
+_DATE_RE = re.compile(
+    r"K[ẾE]\s+HO[ẠA]CH\s+[ĐD]I[ỀE]U\s+[ĐD][ỘO]NG\s+T[ÀA]U\s+"
+    r"NG[ÀA]Y\s*(\d{2})/(\d{2})/(\d{4})",
+    re.IGNORECASE,
+)
 
 
 class DateMismatchError(Exception):
@@ -66,7 +77,12 @@ def _fold(text):
 
 
 def parse_header_date(html):
-    """Read the date out of 'KẾ HOẠCH ĐIỀU ĐỘNG TÀU NGÀY dd/mm/yyyy'."""
+    """Read the date out of 'KẾ HOẠCH ĐIỀU ĐỘNG TÀU NGÀY dd/mm/yyyy'.
+
+    The full header phrase is required, not just the trailing
+    'NGÀY dd/mm/yyyy', so a stray occurrence of that shorter fragment
+    elsewhere on the page cannot be mistaken for the header date.
+    """
     match = _DATE_RE.search(htmllib.unescape(html))
     if not match:
         raise ValueError("no 'NGÀY dd/mm/yyyy' header found in page")
@@ -105,8 +121,10 @@ def parse_page(html, expected_date=None):
         )
 
     soup = BeautifulSoup(html, "lxml")
-    rows = []
-    for index, table in enumerate(soup.find_all("table", class_="cssTD")):
+    tables = soup.find_all("table", class_="cssTD")
+
+    resolved = []
+    for index, table in enumerate(tables):
         section = _section_of(table)
         if section is None:
             heading = _nearest_heading_text(table)
@@ -117,6 +135,37 @@ def parse_page(html, expected_date=None):
                 "renamed a section caption; silently skipping this table "
                 "would drop its rows without a trace."
             )
+        resolved.append(section)
+
+    # A legitimately absent section (fewer tables than known sections, e.g.
+    # the 2021 fixture with only three tables) is fine. What must not happen
+    # is two tables resolving to the SAME section: that only occurs when a
+    # later section's heading was renamed/altered in the source HTML, so the
+    # backward walk in `_section_of` skips over it and matches the previous
+    # section's heading instead - silently mis-filing that table's rows
+    # under the wrong section (e.g. `vao_cang` rows recorded as
+    # `di_chuyen`), corrupting the throughput number without ever raising.
+    seen = {}
+    duplicates = {}
+    for index, section in enumerate(resolved):
+        if section in seen:
+            duplicates.setdefault(section, [seen[section]]).append(index)
+        else:
+            seen[section] = index
+    if duplicates:
+        detail = ", ".join(
+            f"{section!r} (tables {idxs})" for section, idxs in duplicates.items()
+        )
+        raise UnknownSectionError(
+            f"on {page_date}: {len(tables)} cssTD tables resolved to the "
+            f"same section more than once: {detail}. The source likely "
+            "renamed a later section's caption, causing its table to be "
+            "mis-filed under the preceding section instead of raising."
+        )
+
+    rows = []
+    for index, table in enumerate(tables):
+        section = resolved[index]
         columns = COLUMNS[section]
         for tr in table.find_all("tr"):
             cells = tr.find_all("td")
