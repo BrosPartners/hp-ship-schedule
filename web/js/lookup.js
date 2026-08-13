@@ -1,4 +1,4 @@
-import { loadJSON, query, sqlString } from "/js/data.js";
+import { loadJSON, query, sqlString } from "./data.js";
 
 const SECTION_LABELS = {
   roi_cang: "Rời cảng", di_chuyen: "Di chuyển",

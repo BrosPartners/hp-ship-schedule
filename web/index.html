@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Lịch tàu cảng Hải Phòng</title>
-  <link rel="stylesheet" href="/app.css" />
+  <link rel="stylesheet" href="./app.css" />
 </head>
 <body>
   <header>
@@ -25,8 +25,8 @@
   </main>
 
   <script type="module">
-    import { initLookup } from "/js/lookup.js";
-    import { initFreshness } from "/js/quality.js";
+    import { initLookup } from "./js/lookup.js";
+    import { initFreshness } from "./js/quality.js";
     initFreshness(document.getElementById("freshness"));
 
     const loaded = new Set();
@@ -40,8 +40,8 @@
       loaded.add(name);
       const root = document.getElementById(`tab-${name}`);
       if (name === "lookup") initLookup(root);
-      if (name === "analysis") (await import("/js/analysis.js")).initAnalysis(root);
-      if (name === "quality") (await import("/js/quality.js")).initQuality(root);
+      if (name === "analysis") (await import("./js/analysis.js")).initAnalysis(root);
+      if (name === "quality") (await import("./js/quality.js")).initQuality(root);
     }
 
     document.querySelectorAll("nav.tabs button").forEach((b) =>

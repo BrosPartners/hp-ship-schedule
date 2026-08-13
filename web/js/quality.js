@@ -1,4 +1,4 @@
-import { loadJSON, loadManifest } from "/js/data.js";
+import { loadJSON, loadManifest } from "./data.js";
 
 export async function initQuality(root) {
   const [manifest, coverage] = await Promise.all([loadManifest(),

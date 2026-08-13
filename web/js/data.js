@@ -1,16 +1,18 @@
 // Data access. Aggregates load eagerly (small); the Parquet loads only when the
 // lookup tab is first opened.
-const AGG = "/data/agg";
+const AGG = "data/agg";
 let connPromise = null;
 
 export async function loadJSON(name) {
-  const res = await fetch(`${AGG}/${name}.json`);
+  const url = new URL(`${AGG}/${name}.json`, document.baseURI);
+  const res = await fetch(url);
   if (!res.ok) throw new Error(`không tải được ${name}.json (${res.status})`);
   return res.json();
 }
 
 export async function loadManifest() {
-  const res = await fetch("/data/manifest.json");
+  const url = new URL("data/manifest.json", document.baseURI);
+  const res = await fetch(url);
   if (!res.ok) throw new Error(`không tải được manifest.json (${res.status})`);
   return res.json();
 }
@@ -29,7 +31,8 @@ async function openDuckDB() {
   const db = new duckdb.AsyncDuckDB(new duckdb.ConsoleLogger(), worker);
   await db.instantiate(bundle.mainModule, bundle.pthreadWorker);
 
-  const res = await fetch("/data/ship_plan.parquet");
+  const url = new URL("data/ship_plan.parquet", document.baseURI);
+  const res = await fetch(url);
   if (!res.ok) throw new Error(`không tải được parquet (${res.status})`);
   await db.registerFileBuffer(
     "ship_plan.parquet",

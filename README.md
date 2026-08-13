@@ -2,6 +2,11 @@
 
 Dashboard lịch tàu cảng Hải Phòng, dữ liệu từ 2023-01-01, tự cập nhật hằng ngày.
 
+Live: https://brospartners.github.io/hp-ship-schedule/ — deploy bằng GitHub
+Pages (`.github/workflows/pages.yml`), tự chạy lại mỗi khi bot cào dữ liệu
+hằng ngày commit vào `master` (`daily.yml`), nên dashboard luôn hiện dữ liệu
+mới nhất mà không cần thao tác gì thêm.
+
 Nguồn: `csdltau.cangvuhaiphong.gov.vn/pages/ship_plan.aspx?d=<offset>` — offset là
 số ngày lệch so với hôm nay, **luôn tính lại**, không hardcode.
 

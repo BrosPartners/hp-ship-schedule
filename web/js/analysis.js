@@ -1,4 +1,4 @@
-import { loadJSON } from "/js/data.js";
+import { loadJSON } from "./data.js";
 
 const ECHARTS =
   "https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.esm.min.js";

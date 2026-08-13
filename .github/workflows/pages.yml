@@ -1,0 +1,51 @@
+# Deploy the dashboard to GitHub Pages via Actions.
+#
+# The site is static (HTML/CSS/JS) but split across two directories in the
+# repo: the page lives in web/, the data lives in data/ at the repo root.
+# Pages serves a single directory, so this workflow assembles a publish tree
+# with web/'s contents at the root and the whole data/ directory nested
+# under data/, matching what the page's relative fetches expect.
+#
+# Triggered on every push to master, which includes the daily crawl commit
+# (see daily.yml), so the site redeploys automatically with fresh data.
+name: Deploy Pages
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Khong huy deploy dang chay giua chung; xep hang cho xong.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Assemble publish directory
+        run: |
+          mkdir -p publish
+          cp -r web/. publish/
+          mkdir -p publish/data
+          cp -r data/. publish/data/
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: publish
+
+      - id: deployment
+        uses: actions/deploy-pages@v4
