@@ -26,6 +26,8 @@
 
   <script type="module">
     import { initLookup } from "/js/lookup.js";
+    import { initFreshness } from "/js/quality.js";
+    initFreshness(document.getElementById("freshness"));
 
     const loaded = new Set();
     async function show(name) {

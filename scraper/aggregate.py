@@ -143,6 +143,31 @@ def build_all(parquet_path, out_dir):
         "dwt_max": int(df["dwt"].max()) if df["dwt"].notna().any() else 0,
         "draft_max": float(df["draft_m"].max()) if df["draft_m"].notna().any() else 0.0,
     })
+
+    # Berth-mapping coverage, surfaced in the UI rather than buried in a log
+    from collections import Counter
+    slots, unmapped = 0, Counter()
+    recent = df[df["plan_date"] >= df["plan_date"].max() - pd.Timedelta(days=30)] \
+        if not df.empty else df
+    recent_slots, recent_unmapped = 0, 0
+    for frame, is_recent in ((df, False), (recent, True)):
+        for side in ("from", "to"):
+            raw_col, berth_col = f"{side}_raw", f"{side}_berth"
+            mask = frame[raw_col].notna()
+            miss = mask & frame[berth_col].isna()
+            if is_recent:
+                recent_slots += int(mask.sum())
+                recent_unmapped += int(miss.sum())
+            else:
+                slots += int(mask.sum())
+                for value in frame.loc[miss, raw_col]:
+                    unmapped[str(value).strip().upper()] += 1
+    written["coverage"] = _write(out_dir, "coverage", {
+        "unmapped_pct_all": round(100 * sum(unmapped.values()) / slots, 2) if slots else 0.0,
+        "unmapped_pct_30d": round(100 * recent_unmapped / recent_slots, 2) if recent_slots else 0.0,
+        "top_unmapped": [{"raw_name": k, "n": int(v)}
+                         for k, v in unmapped.most_common(30)],
+    })
     return written
 
 

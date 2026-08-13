@@ -157,6 +157,20 @@ def test_slippage_single_snapshot_still_short_circuits():
     assert result["note"] == "chưa có dữ liệu nhiều snapshot"
 
 
+def test_coverage_json_reports_unmapped_share(tmp_path):
+    parquet = tmp_path / "d.parquet"
+    _df([
+        _row(row_key="a", to_raw="TAN VU", to_berth="Tân Vũ"),
+        _row(row_key="b", to_raw="ZZZ", to_berth=None,
+             from_raw="CHINA", from_berth="Trung Quốc"),
+    ]).to_parquet(parquet, index=False)
+    build_all(parquet, tmp_path / "agg")
+    cov = json.loads((tmp_path / "agg" / "coverage.json").read_text(encoding="utf-8"))
+    # 4 slots total, 1 unmapped ('ZZZ')
+    assert cov["unmapped_pct_all"] == 25.0
+    assert cov["top_unmapped"][0]["raw_name"] == "ZZZ"
+
+
 def test_filters_json_lists_berths_and_range(tmp_path):
     parquet = tmp_path / "d.parquet"
     _df([_row(row_key="a")]).to_parquet(parquet, index=False)
