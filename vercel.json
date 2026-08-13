@@ -1,7 +1,10 @@
 {
   "cleanUrls": true,
   "rewrites": [
-    { "source": "/data/:path*", "destination": "/data/:path*" }
+    { "source": "/data/:path*", "destination": "/data/:path*" },
+    { "source": "/js/:path*", "destination": "/web/js/:path*" },
+    { "source": "/app.css", "destination": "/web/app.css" },
+    { "source": "/", "destination": "/web/index.html" }
   ],
   "headers": [
     {

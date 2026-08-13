@@ -13,14 +13,14 @@
   </header>
 
   <nav class="tabs">
-    <button data-tab="lookup" class="active">Tra cứu</button>
-    <button data-tab="analysis">Phân tích</button>
+    <button data-tab="lookup">Tra cứu</button>
+    <button data-tab="analysis" class="active">Phân tích</button>
     <button data-tab="quality">Chất lượng dữ liệu</button>
   </nav>
 
   <main>
-    <section id="tab-lookup"></section>
-    <section id="tab-analysis" hidden></section>
+    <section id="tab-lookup" hidden></section>
+    <section id="tab-analysis"></section>
     <section id="tab-quality" hidden></section>
   </main>
 
@@ -46,7 +46,7 @@
 
     document.querySelectorAll("nav.tabs button").forEach((b) =>
       b.addEventListener("click", () => show(b.dataset.tab)));
-    show("lookup");
+    show("analysis");
   </script>
 </body>
 </html>
