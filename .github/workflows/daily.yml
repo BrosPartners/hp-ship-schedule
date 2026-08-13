@@ -51,3 +51,5 @@ jobs:
               title: `Daily crawl failed ${new Date().toISOString().slice(0,10)}`,
               body: `Run: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
             });
+
+# Cron: 00:30 UTC = 07:30 gio Viet Nam (UTC+7).
