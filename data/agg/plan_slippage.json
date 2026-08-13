@@ -1,1 +1,1 @@
-{"rows":[],"note":"chưa có dữ liệu nhiều snapshot"}
+{"rows":[],"note":"chưa có dữ liệu nhiều snapshot","baseline_note":"Baseline for each plan_date is the earliest snapshot, captured the day before while the plan was only partly published. 'added' is therefore dominated by publication, not schedule changes, and pct_changed is computed only over the movements that already existed in that pre-publication snapshot."}

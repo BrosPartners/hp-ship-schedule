@@ -51,6 +51,39 @@ def test_throughput_excludes_departures_and_channel_transits():
     assert set(throughput_rows(df)["row_key"]) == {"a"}
 
 
+def test_throughput_excludes_vao_cang_landing_at_anchorage():
+    """An anchorage arrival must not be counted, or the same vessel is
+    double-counted once more when it later moves on to a berth."""
+    df = _df([
+        _row(row_key="a", section="vao_cang", to_type="berth"),
+        _row(row_key="b", section="vao_cang", to_type="anchorage",
+             to_berth=None, to_ticker=None),
+    ])
+    assert set(throughput_rows(df)["row_key"]) == {"a"}
+
+
+def test_throughput_excludes_vao_cang_landing_outside_hai_phong():
+    """An arrival at an external destination (e.g. Bến Lâm, Nam Ninh) is not
+    Hải Phòng throughput and must not be counted."""
+    df = _df([
+        _row(row_key="a", section="vao_cang", to_type="berth"),
+        _row(row_key="b", section="vao_cang", to_type="external",
+             to_berth=None, to_ticker=None),
+    ])
+    assert set(throughput_rows(df)["row_key"]) == {"a"}
+
+
+def test_throughput_excludes_vao_cang_with_unmapped_destination():
+    """An arrival whose destination never resolved (to_type is null) cannot
+    be attributed to any berth and must not be counted."""
+    df = _df([
+        _row(row_key="a", section="vao_cang", to_type="berth"),
+        _row(row_key="b", section="vao_cang", to_type=None,
+             to_berth=None, to_ticker=None),
+    ])
+    assert set(throughput_rows(df)["row_key"]) == {"a"}
+
+
 def test_build_all_writes_every_chart_file(tmp_path):
     parquet = tmp_path / "d.parquet"
     _df([_row(row_key="a"), _row(row_key="b", plan_date=date(2026, 7, 3),
@@ -157,6 +190,48 @@ def test_slippage_single_snapshot_still_short_circuits():
     assert result["note"] == "chưa có dữ liệu nhiều snapshot"
 
 
+def test_slippage_null_plan_time_is_not_treated_as_changed():
+    """pd.NaT != pd.NaT is True; a null-safe comparison must not count two
+    null plan_times as a change."""
+    d = date(2026, 8, 11)
+    early = datetime(2026, 8, 11)
+    late = datetime(2026, 8, 12)
+    rows = [
+        _row(row_key="a", plan_date=d, section="di_chuyen",
+             plan_time=None, to_raw="BERTH0", crawled_at=early),
+        _row(row_key="b", plan_date=d, section="di_chuyen",
+             plan_time=None, to_raw="BERTH0", crawled_at=late),
+    ]
+    df = _df(rows)
+    result = _slippage(df)
+    row = result["rows"][0]
+    assert row["matched"] == 1
+    assert row["changed"] == 0
+
+
+def test_slippage_reports_a_baseline_note_in_every_branch():
+    """The chart's label must state that its baseline is a pre-publication
+    stub, not the fully-published plan."""
+    empty_result = _slippage(_df([]))
+    assert "baseline_note" in empty_result
+    assert empty_result["baseline_note"]
+
+    single_snapshot_result = _slippage(_df([_row(row_key="a")]))
+    assert single_snapshot_result["baseline_note"]
+
+    d = date(2026, 8, 11)
+    early = datetime(2026, 8, 11)
+    late = datetime(2026, 8, 12)
+    rows = [
+        _row(row_key="a", plan_date=d, section="di_chuyen",
+             to_raw="BERTH0", crawled_at=early),
+        _row(row_key="b", plan_date=d, section="di_chuyen",
+             to_raw="BERTH0", crawled_at=late),
+    ]
+    multi_snapshot_result = _slippage(_df(rows))
+    assert multi_snapshot_result["baseline_note"]
+
+
 def test_coverage_json_reports_unmapped_share(tmp_path):
     parquet = tmp_path / "d.parquet"
     _df([
@@ -169,6 +244,29 @@ def test_coverage_json_reports_unmapped_share(tmp_path):
     # 4 slots total, 1 unmapped ('ZZZ')
     assert cov["unmapped_pct_all"] == 25.0
     assert cov["top_unmapped"][0]["raw_name"] == "ZZZ"
+
+
+def test_build_all_excludes_future_dated_rows_from_charts(tmp_path):
+    """A future-dated row (e.g. the daily job's partly-published 'tomorrow')
+    is stored but must not drag down monthly_volume or daily_heatmap."""
+    parquet = tmp_path / "d.parquet"
+    _df([
+        _row(row_key="a", plan_date=date(2026, 8, 11),
+             plan_time=datetime(2026, 8, 11, 6, 0)),
+        _row(row_key="b", plan_date=date(2026, 8, 12),
+             plan_time=datetime(2026, 8, 12, 6, 0)),
+    ]).to_parquet(parquet, index=False)
+    build_all(parquet, tmp_path / "agg", today=date(2026, 8, 11))
+
+    monthly = json.loads((tmp_path / "agg" / "monthly_volume.json").read_text(encoding="utf-8"))
+    entry = next(r for r in monthly["rows"] if r["month"] == "2026-08")
+    assert entry["calls"] == 1
+
+    heatmap = json.loads((tmp_path / "agg" / "daily_heatmap.json").read_text(encoding="utf-8"))
+    assert {r["date"] for r in heatmap["rows"]} == {"2026-08-11"}
+
+    filters = json.loads((tmp_path / "agg" / "filters.json").read_text(encoding="utf-8"))
+    assert filters["date_max"] == "2026-08-11"
 
 
 def test_filters_json_lists_berths_and_range(tmp_path):

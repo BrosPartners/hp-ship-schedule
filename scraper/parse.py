@@ -46,6 +46,17 @@ class DateMismatchError(Exception):
     """The page returned a different date than the offset was meant to select."""
 
 
+class UnknownSectionError(Exception):
+    """A `cssTD` table's nearest preceding heading did not match a known section.
+
+    Silently skipping such a table (the old behaviour) drops every row in it
+    without a trace: the crawl succeeds, the manifest records the day as
+    covered, and no issue is opened. If the source renames a section caption,
+    this must fail loudly instead so the day lands in `days_failed` and CI
+    opens an issue.
+    """
+
+
 def _fold(text):
     """Lowercase, strip diacritics and collapse whitespace, for label matching."""
     text = htmllib.unescape(text or "")
@@ -72,6 +83,14 @@ def _section_of(table):
     return None
 
 
+def _nearest_heading_text(table):
+    """Nearest non-blank preceding text node, for the UnknownSectionError message."""
+    for text in table.find_all_previous(string=True):
+        if _fold(text):
+            return str(text).strip()
+    return None
+
+
 def parse_page(html, expected_date=None):
     """Return a list of raw row dicts, one per vessel movement.
 
@@ -87,10 +106,17 @@ def parse_page(html, expected_date=None):
 
     soup = BeautifulSoup(html, "lxml")
     rows = []
-    for table in soup.find_all("table", class_="cssTD"):
+    for index, table in enumerate(soup.find_all("table", class_="cssTD")):
         section = _section_of(table)
         if section is None:
-            continue
+            heading = _nearest_heading_text(table)
+            raise UnknownSectionError(
+                f"cssTD table #{index} on {page_date}: nearest preceding "
+                f"heading {heading!r} does not match any known section "
+                f"{sorted(_SECTION_LABELS.values())}. The source may have "
+                "renamed a section caption; silently skipping this table "
+                "would drop its rows without a trace."
+            )
         columns = COLUMNS[section]
         for tr in table.find_all("tr"):
             cells = tr.find_all("td")

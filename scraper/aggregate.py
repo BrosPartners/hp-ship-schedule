@@ -1,6 +1,7 @@
 """Precompute the JSON the analysis tab reads, so the page paints immediately."""
 
 import json
+from datetime import date
 from pathlib import Path
 
 import pandas as pd
@@ -35,13 +36,28 @@ def _prepare(df):
 
 
 def throughput_rows(df):
-    """Movements that represent a vessel arriving at a Hải Phòng berth.
+    """Movements that represent a vessel calling at a Hải Phòng berth.
 
-    Arrivals count. Internal moves count only when the destination is a berth,
-    otherwise an anchorage-to-anchorage shuffle would count the same vessel
-    twice. Departures and channel transits never count.
+    This is "lượt cập cầu bến" (berth calls), not port-wide arrivals: a row
+    counts only when its destination (`to_type`) is a berth. That applies to
+    both clauses:
+      - `vao_cang` (arrival) rows whose `to_type == "berth"`.
+      - `di_chuyen` (internal move) rows whose `to_type == "berth"`.
+
+    Three categories of `vao_cang` row are deliberately excluded, because each
+    would otherwise inflate the count:
+      - Landing at an anchorage (`to_type == "anchorage"`): a large share of
+        these vessels have a matching `di_chuyen` to a berth for the same
+        voyage within a few days, so counting the anchorage arrival too would
+        double-count a single vessel call.
+      - Landing outside Hải Phòng (`to_type == "external"`, e.g. Bến Lâm,
+        Cảng cá Hạ Long, Nam Ninh, Hạ Long): not Hải Phòng throughput at all.
+      - Landing at an unmapped destination (`to_type` is null): cannot be
+        attributed to any berth, so it cannot be counted as a berth call.
+
+    Departures (`roi_cang`) and channel transits (`qua_luong`) never count.
     """
-    arrivals = df["section"] == "vao_cang"
+    arrivals = (df["section"] == "vao_cang") & (df["to_type"] == "berth")
     moves = (df["section"] == "di_chuyen") & (df["to_type"] == "berth")
     return df[arrivals | moves]
 
@@ -54,9 +70,22 @@ def _write(out_dir, name, payload):
     return str(path)
 
 
-def build_all(parquet_path, out_dir):
+def build_all(parquet_path, out_dir, today=None):
+    """Build every chart JSON the analysis tab reads.
+
+    `today` is the cutoff for the aggregates: rows with `plan_date` later than
+    `today` are dropped from `df` before any chart is computed, so they are
+    absent from every chart json and from `filters.date_max`. This keeps a
+    partially-published future day (the daily job stores "tomorrow", whose
+    plan is only partly published) from dragging down monthly/daily
+    aggregates. The raw stored parquet and the lookup tab are untouched -
+    this only trims what feeds the aggregates. Defaults to `date.today()`;
+    tests pass an explicit value to stay hermetic.
+    """
+    cutoff = today or date.today()
     raw = pd.read_parquet(parquet_path)
     df = _prepare(raw)
+    df = df[df["plan_date"] <= pd.Timestamp(cutoff)]
     thr = throughput_rows(df)
     written = {}
 
@@ -171,6 +200,22 @@ def build_all(parquet_path, out_dir):
     return written
 
 
+_BASELINE_NOTE = (
+    "Baseline for each plan_date is the earliest snapshot, captured the day "
+    "before while the plan was only partly published. 'added' is therefore "
+    "dominated by publication, not schedule changes, and pct_changed is "
+    "computed only over the movements that already existed in that "
+    "pre-publication snapshot."
+)
+
+
+def _time_changed(a, b):
+    """Null-safe inequality: two nulls are not a change (pd.NaT != pd.NaT is True)."""
+    if pd.isna(a) and pd.isna(b):
+        return False
+    return a != b
+
+
 def _slippage(raw):
     """Share of movements whose time or destination changed between snapshots.
 
@@ -178,13 +223,15 @@ def _slippage(raw):
     plan_date. It fills in from the day the daily job starts running.
     """
     if raw.empty:
-        return {"rows": [], "note": "chưa có dữ liệu nhiều snapshot"}
+        return {"rows": [], "note": "chưa có dữ liệu nhiều snapshot",
+                "baseline_note": _BASELINE_NOTE}
     df = raw.copy()
     df["crawl_day"] = pd.to_datetime(df["crawled_at"]).dt.date
     counts = df.groupby("plan_date")["crawl_day"].nunique()
     multi = counts[counts > 1].index
     if len(multi) == 0:
-        return {"rows": [], "note": "chưa có dữ liệu nhiều snapshot"}
+        return {"rows": [], "note": "chưa có dữ liệu nhiều snapshot",
+                "baseline_note": _BASELINE_NOTE}
 
     def _grouped(snapshot):
         groups = {}
@@ -213,7 +260,7 @@ def _slippage(raw):
             matched += n
             for i in range(n):
                 a, b = first_list[i], last_list[i]
-                if a.plan_time != b.plan_time or a.to_raw != b.to_raw:
+                if _time_changed(a.plan_time, b.plan_time) or a.to_raw != b.to_raw:
                     changed += 1
             dropped += len(first_list) - n
             added += len(last_list) - n
@@ -226,7 +273,7 @@ def _slippage(raw):
             "added": added,
             "pct_changed": round(100 * changed / matched, 2) if matched else None,
         })
-    return {"rows": rows, "note": None}
+    return {"rows": rows, "note": None, "baseline_note": _BASELINE_NOTE}
 
 
 def main():

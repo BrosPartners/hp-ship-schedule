@@ -6,6 +6,7 @@ plan_date without needing a second cron entry.
 
 import json
 from datetime import date, datetime, timedelta
+from functools import partial
 from pathlib import Path
 
 from scraper.aggregate import build_all
@@ -22,8 +23,14 @@ DEFAULT_PATHS = {
     "agg": ROOT / "data" / "agg",
 }
 
+# The README tells the owner to run this locally, where `cache/` is warm from
+# earlier runs/backfills. A plain cache hit would re-read yesterday's cached
+# page and never observe a revision, so the default fetcher always forces a
+# live fetch. CI's cache is cold anyway, so this changes nothing there.
+_DEFAULT_FETCHER = partial(fetch_day, force=True)
 
-def run(paths=None, fetcher=fetch_day, today=None, now=None):
+
+def run(paths=None, fetcher=_DEFAULT_FETCHER, today=None, now=None):
     paths = paths or DEFAULT_PATHS
     today = today or date.today()
     crawled_at = now or datetime.now()
@@ -43,30 +50,36 @@ def run(paths=None, fetcher=fetch_day, today=None, now=None):
     for target in targets:
         try:
             raw = parse_page(fetcher(target), expected_date=target)
+
+            if not raw:
+                # A future target (typically tomorrow) coming back empty
+                # usually means its plan is not published yet, not that it
+                # was crawled and genuinely had no rows. Only record it as
+                # empty once it is not in the future relative to this run's
+                # `today`.
+                if target <= today:
+                    mark_crawled_empty(paths["manifest"], target)
+                empty += 1
+                print(f"{target}: empty")
+                continue
+
+            records = apply_berth_map(build_records(raw, crawled_at), berth_map)
+            written = upsert(paths["parquet"], records)
+            rows += written
+            done += 1
+            print(f"{target}: {written} rows")
         except Exception as exc:                      # noqa: BLE001
+            # Storage errors (a locked destination file, etc.) must land here
+            # too, not just fetch/parse failures - otherwise one bad target
+            # would propagate out of `run()` and stop the remaining targets
+            # from ever being attempted (see backfill.py, which had exactly
+            # this defect fixed).
             print(f"{target}: FAILED {exc}")
             failed.append(target)
             continue
 
-        if not raw:
-            # A future target (typically tomorrow) coming back empty usually
-            # means its plan is not published yet, not that it was crawled
-            # and genuinely had no rows. Only record it as empty once it is
-            # not in the future relative to this run's `today`.
-            if target <= today:
-                mark_crawled_empty(paths["manifest"], target)
-            empty += 1
-            print(f"{target}: empty")
-            continue
-
-        records = apply_berth_map(build_records(raw, crawled_at), berth_map)
-        written = upsert(paths["parquet"], records)
-        rows += written
-        done += 1
-        print(f"{target}: {written} rows")
-
     if Path(paths["parquet"]).exists():
-        build_all(paths["parquet"], paths["agg"])
+        build_all(paths["parquet"], paths["agg"], today=today)
     # Pass `today` explicitly (not max(end, date.today())) so missing_days is
     # always computed through the actual current day, and stays hermetic
     # under tests that pin `today`.

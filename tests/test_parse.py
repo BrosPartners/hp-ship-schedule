@@ -4,7 +4,12 @@ from pathlib import Path
 
 import pytest
 
-from scraper.parse import DateMismatchError, parse_header_date, parse_page
+from scraper.parse import (
+    DateMismatchError,
+    UnknownSectionError,
+    parse_header_date,
+    parse_page,
+)
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
@@ -69,6 +74,22 @@ def test_missing_section_is_tolerated():
     rows = parse_page(load("2021-02-19_3tables"))
     assert rows, "2021 fixture should still yield rows"
     assert "qua_luong" not in {r["section"] for r in rows}
+
+
+def test_renamed_caption_raises_instead_of_silently_dropping_rows():
+    """If the source renames a section caption, the day must fail loudly
+    (so it lands in days_failed and CI opens an issue), not silently yield
+    fewer rows while the crawl and manifest both report success."""
+    html = load("2026-08-11_full")
+    # Alter the *first* section's heading ("roi_cang") so _section_of no
+    # longer recognizes it. It must be the first heading in the page - any
+    # later one would still resolve (wrongly) against an earlier, unrenamed
+    # heading further up the page, which is not what this guards against.
+    altered = html.replace("Kế hoạch tàu rời cảng",
+                            "Kế hoạch tàu rời cảng mới", 1)
+    assert altered != html, "fixture no longer contains the caption text expected"
+    with pytest.raises(UnknownSectionError):
+        parse_page(altered, expected_date=date(2026, 8, 11))
 
 
 def test_empty_day_yields_no_rows():

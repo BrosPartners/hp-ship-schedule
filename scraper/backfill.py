@@ -11,6 +11,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from scraper.aggregate import build_all
 from scraper.fetch import fetch_day
 from scraper.normalize import apply_berth_map, build_records, load_berth_map
 from scraper.parse import parse_page
@@ -20,6 +21,7 @@ ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_PATHS = {
     "parquet": ROOT / "data" / "ship_plan.parquet",
     "manifest": ROOT / "data" / "manifest.json",
+    "agg": ROOT / "data" / "agg",
 }
 START = date(2023, 1, 1)
 
@@ -45,9 +47,11 @@ def days_to_do(start, end, manifest_path, parquet_path):
     return todo
 
 
-def run(start, end, paths=None, fetcher=fetch_day, now=None, berth_map_path=None):
+def run(start, end, paths=None, fetcher=fetch_day, now=None, berth_map_path=None,
+        today=None):
     paths = paths or DEFAULT_PATHS
     crawled_at = now or datetime.now()
+    today = today or date.today()
     map_path = Path(berth_map_path) if berth_map_path is not None else ROOT / "data" / "berth_map.csv"
     if not map_path.exists():
         raise FileNotFoundError(
@@ -82,7 +86,16 @@ def run(start, end, paths=None, fetcher=fetch_day, now=None, berth_map_path=None
             failed.append(target)
             continue
 
-    write_manifest(paths["parquet"], paths["manifest"], start, end)
+    # Pass `today`, not `end`: running a past `--end` must not rewrite
+    # days_expected/missing_days as if the dataset stopped there, and the
+    # aggregates below need the real current day as their future-tail cutoff.
+    write_manifest(paths["parquet"], paths["manifest"], start, today)
+
+    agg_dir = paths.get("agg") if paths and "agg" in paths \
+        else Path(paths["parquet"]).parent / "agg"
+    if Path(paths["parquet"]).exists():
+        build_all(paths["parquet"], agg_dir, today=today)
+
     return {"days_done": done, "days_empty": empty,
             "days_failed": failed, "rows": rows}
 
