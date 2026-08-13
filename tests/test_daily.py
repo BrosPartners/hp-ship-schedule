@@ -23,7 +23,7 @@ def test_daily_fetches_yesterday_today_and_tomorrow(tmp_path):
         raise RuntimeError("stop after recording targets")
 
     result = run(
-        paths={"parquet": tmp_path / "d.parquet",
+        paths={"parquet": tmp_path / "parts",
                "manifest": tmp_path / "m.json",
                "agg": tmp_path / "agg"},
         fetcher=fetcher, today=date(2026, 8, 12),
@@ -34,7 +34,7 @@ def test_daily_fetches_yesterday_today_and_tomorrow(tmp_path):
 
 
 def test_daily_stores_rows_and_builds_aggregates(tmp_path):
-    paths = {"parquet": tmp_path / "d.parquet", "manifest": tmp_path / "m.json",
+    paths = {"parquet": tmp_path / "parts", "manifest": tmp_path / "m.json",
              "agg": tmp_path / "agg"}
 
     def fetcher(target):
@@ -50,7 +50,7 @@ def test_daily_stores_rows_and_builds_aggregates(tmp_path):
 
 
 def test_a_second_run_on_a_later_day_creates_a_second_snapshot(tmp_path):
-    paths = {"parquet": tmp_path / "d.parquet", "manifest": tmp_path / "m.json",
+    paths = {"parquet": tmp_path / "parts", "manifest": tmp_path / "m.json",
              "agg": tmp_path / "agg"}
     fetcher = lambda target: _html("2026-08-11_full")  # noqa: E731
 
@@ -59,8 +59,8 @@ def test_a_second_run_on_a_later_day_creates_a_second_snapshot(tmp_path):
     run(paths=paths, fetcher=fetcher, today=date(2026, 8, 12),
         now=datetime(2026, 8, 12, 7, 30))
 
-    import pandas as pd
-    df = pd.read_parquet(paths["parquet"])
+    from scraper.store import load
+    df = load(paths["parquet"])
     assert df["crawled_at"].nunique() == 2
 
 
@@ -74,7 +74,7 @@ def test_daily_does_not_mark_unpublished_future_day_as_empty(tmp_path):
     """Tomorrow's plan is usually not published yet; an empty fetch for a
     future target must not be recorded as empty_days, or it can never
     self-heal once the plan is actually published."""
-    paths = {"parquet": tmp_path / "d.parquet", "manifest": tmp_path / "m.json",
+    paths = {"parquet": tmp_path / "parts", "manifest": tmp_path / "m.json",
               "agg": tmp_path / "agg"}
 
     result = run(paths=paths, fetcher=_empty_page_for, today=date(2026, 8, 12),
@@ -86,7 +86,7 @@ def test_daily_does_not_mark_unpublished_future_day_as_empty(tmp_path):
 
 
 def test_daily_marks_non_future_empty_day_as_empty(tmp_path):
-    paths = {"parquet": tmp_path / "d.parquet", "manifest": tmp_path / "m.json",
+    paths = {"parquet": tmp_path / "parts", "manifest": tmp_path / "m.json",
               "agg": tmp_path / "agg"}
 
     result = run(paths=paths, fetcher=_empty_page_for, today=date(2026, 8, 12),
@@ -105,7 +105,7 @@ def test_a_storage_failure_on_one_target_does_not_abort_the_run(tmp_path, monkey
     mirroring the fix already in scraper.backfill."""
     import scraper.daily as daily_module
 
-    paths = {"parquet": tmp_path / "d.parquet", "manifest": tmp_path / "m.json",
+    paths = {"parquet": tmp_path / "parts", "manifest": tmp_path / "m.json",
               "agg": tmp_path / "agg"}
 
     calls = {"n": 0}
@@ -157,7 +157,7 @@ def test_daily_raises_loudly_when_berth_map_is_missing(tmp_path, monkeypatch):
         fetched.append(target)
         raise AssertionError("should never be called: map check must run first")
 
-    paths = {"parquet": tmp_path / "d.parquet", "manifest": tmp_path / "m.json",
+    paths = {"parquet": tmp_path / "parts", "manifest": tmp_path / "m.json",
              "agg": tmp_path / "agg"}
 
     with pytest.raises(FileNotFoundError):

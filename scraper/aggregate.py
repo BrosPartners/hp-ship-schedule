@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from scraper.store import latest_snapshot
+from scraper.store import latest_snapshot, load as load_partitions
 
 ROOT = Path(__file__).resolve().parent.parent
 DWT_BANDS = [(0, 5000), (5000, 20000), (20000, 50000), (50000, 100000),
@@ -73,6 +73,11 @@ def _write(out_dir, name, payload):
 def build_all(parquet_path, out_dir, today=None):
     """Build every chart JSON the analysis tab reads.
 
+    `parquet_path` is the directory of monthly partitions (as written by
+    `scraper.store.upsert`); the whole dataset is read via the partitioned
+    loader and concatenated, exactly as `scraper.store.load` does for any
+    other caller.
+
     `today` is the cutoff for the aggregates: rows with `plan_date` later than
     `today` are dropped from `df` before any chart is computed, so they are
     absent from every chart json and from `filters.date_max`. This keeps a
@@ -83,7 +88,7 @@ def build_all(parquet_path, out_dir, today=None):
     tests pass an explicit value to stay hermetic.
     """
     cutoff = today or date.today()
-    raw = pd.read_parquet(parquet_path)
+    raw = load_partitions(parquet_path)
     df = _prepare(raw)
     df = df[df["plan_date"] <= pd.Timestamp(cutoff)]
     thr = throughput_rows(df)
@@ -277,7 +282,7 @@ def _slippage(raw):
 
 
 def main():
-    written = build_all(ROOT / "data" / "ship_plan.parquet", ROOT / "data" / "agg")
+    written = build_all(ROOT / "data" / "parts", ROOT / "data" / "agg")
     for name, path in written.items():
         print(f"{name}: {path}")
 

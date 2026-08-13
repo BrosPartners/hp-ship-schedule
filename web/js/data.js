@@ -31,17 +31,25 @@ async function openDuckDB() {
   const db = new duckdb.AsyncDuckDB(new duckdb.ConsoleLogger(), worker);
   await db.instantiate(bundle.mainModule, bundle.pthreadWorker);
 
-  const url = new URL("data/ship_plan.parquet", document.baseURI);
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`không tải được parquet (${res.status})`);
-  await db.registerFileBuffer(
-    "ship_plan.parquet",
-    new Uint8Array(await res.arrayBuffer())
-  );
+  const manifest = await loadManifest();
+  const partitions = manifest.partitions ?? [];
+  if (!partitions.length) throw new Error("manifest.json không liệt kê partition nào");
 
+  // Each monthly partition is immutable once written (only the current
+  // month's file ever changes), so the browser/CDN can cache old months
+  // forever - a returning visitor only re-fetches the current month.
+  await Promise.all(partitions.map(async (name) => {
+    const url = new URL(`data/parts/${name}`, document.baseURI);
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`không tải được ${name} (${res.status})`);
+    await db.registerFileBuffer(name, new Uint8Array(await res.arrayBuffer()));
+  }));
+
+  const fileList = partitions.map((name) => `'${name}'`).join(", ");
   const conn = await db.connect();
   await conn.query(`
-    CREATE VIEW plans AS SELECT * FROM 'ship_plan.parquet';
+    CREATE VIEW plans AS
+      SELECT * FROM read_parquet([${fileList}], union_by_name=true);
     CREATE VIEW plans_latest AS
       SELECT * FROM (
         SELECT *, max(crawled_at) OVER (PARTITION BY plan_date) AS newest

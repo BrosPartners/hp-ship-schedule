@@ -18,7 +18,7 @@ from scraper.store import mark_crawled_empty, upsert, write_manifest
 ROOT = Path(__file__).resolve().parent.parent
 START = date(2023, 1, 1)
 DEFAULT_PATHS = {
-    "parquet": ROOT / "data" / "ship_plan.parquet",
+    "parquet": ROOT / "data" / "parts",
     "manifest": ROOT / "data" / "manifest.json",
     "agg": ROOT / "data" / "agg",
 }

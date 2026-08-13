@@ -16,6 +16,15 @@ def _df(rows):
     return frame[SCHEMA_COLUMNS]
 
 
+def _write_parts(dir_path, df):
+    """Write `df` into the monthly partition layout `build_all` reads."""
+    dir_path = Path(dir_path)
+    dir_path.mkdir(parents=True, exist_ok=True)
+    months = pd.to_datetime(df["plan_date"]).dt.strftime("%Y-%m")
+    for month, group in df.groupby(months):
+        group.to_parquet(dir_path / f"ship_plan_{month}.parquet", index=False)
+
+
 def _row(**kw):
     base = dict(
         plan_date=date(2026, 8, 11), section="vao_cang",
@@ -85,10 +94,9 @@ def test_throughput_excludes_vao_cang_with_unmapped_destination():
 
 
 def test_build_all_writes_every_chart_file(tmp_path):
-    parquet = tmp_path / "d.parquet"
-    _df([_row(row_key="a"), _row(row_key="b", plan_date=date(2026, 7, 3),
-                                  plan_time=datetime(2026, 7, 3, 8, 0))]
-        ).to_parquet(parquet, index=False)
+    parquet = tmp_path / "parts"
+    _write_parts(parquet, _df([_row(row_key="a"), _row(row_key="b", plan_date=date(2026, 7, 3),
+                                  plan_time=datetime(2026, 7, 3, 8, 0))]))
     out = build_all(parquet, tmp_path / "agg")
     for name in ("monthly_volume", "berth_share", "vessel_size",
                  "route_mix", "daily_heatmap", "plan_slippage", "filters"):
@@ -99,9 +107,8 @@ def test_build_all_writes_every_chart_file(tmp_path):
 
 
 def test_monthly_volume_has_month_calls_and_dwt(tmp_path):
-    parquet = tmp_path / "d.parquet"
-    _df([_row(row_key="a", dwt=10000), _row(row_key="b", dwt=5000)]
-        ).to_parquet(parquet, index=False)
+    parquet = tmp_path / "parts"
+    _write_parts(parquet, _df([_row(row_key="a", dwt=10000), _row(row_key="b", dwt=5000)]))
     build_all(parquet, tmp_path / "agg")
     data = json.loads((tmp_path / "agg" / "monthly_volume.json").read_text(encoding="utf-8"))
     entry = next(r for r in data["rows"] if r["month"] == "2026-08")
@@ -111,11 +118,11 @@ def test_monthly_volume_has_month_calls_and_dwt(tmp_path):
 
 def test_only_latest_snapshot_feeds_the_aggregates(tmp_path):
     """Two snapshots of one day must not double the monthly call count."""
-    parquet = tmp_path / "d.parquet"
-    _df([
+    parquet = tmp_path / "parts"
+    _write_parts(parquet, _df([
         _row(row_key="a", crawled_at=datetime(2026, 8, 11)),
         _row(row_key="a", crawled_at=datetime(2026, 8, 12)),
-    ]).to_parquet(parquet, index=False)
+    ]))
     build_all(parquet, tmp_path / "agg")
     data = json.loads((tmp_path / "agg" / "monthly_volume.json").read_text(encoding="utf-8"))
     assert next(r for r in data["rows"] if r["month"] == "2026-08")["calls"] == 1
@@ -233,12 +240,12 @@ def test_slippage_reports_a_baseline_note_in_every_branch():
 
 
 def test_coverage_json_reports_unmapped_share(tmp_path):
-    parquet = tmp_path / "d.parquet"
-    _df([
+    parquet = tmp_path / "parts"
+    _write_parts(parquet, _df([
         _row(row_key="a", to_raw="TAN VU", to_berth="Tân Vũ"),
         _row(row_key="b", to_raw="ZZZ", to_berth=None,
              from_raw="CHINA", from_berth="Trung Quốc"),
-    ]).to_parquet(parquet, index=False)
+    ]))
     build_all(parquet, tmp_path / "agg")
     cov = json.loads((tmp_path / "agg" / "coverage.json").read_text(encoding="utf-8"))
     # 4 slots total, 1 unmapped ('ZZZ')
@@ -249,13 +256,13 @@ def test_coverage_json_reports_unmapped_share(tmp_path):
 def test_build_all_excludes_future_dated_rows_from_charts(tmp_path):
     """A future-dated row (e.g. the daily job's partly-published 'tomorrow')
     is stored but must not drag down monthly_volume or daily_heatmap."""
-    parquet = tmp_path / "d.parquet"
-    _df([
+    parquet = tmp_path / "parts"
+    _write_parts(parquet, _df([
         _row(row_key="a", plan_date=date(2026, 8, 11),
              plan_time=datetime(2026, 8, 11, 6, 0)),
         _row(row_key="b", plan_date=date(2026, 8, 12),
              plan_time=datetime(2026, 8, 12, 6, 0)),
-    ]).to_parquet(parquet, index=False)
+    ]))
     build_all(parquet, tmp_path / "agg", today=date(2026, 8, 11))
 
     monthly = json.loads((tmp_path / "agg" / "monthly_volume.json").read_text(encoding="utf-8"))
@@ -270,8 +277,8 @@ def test_build_all_excludes_future_dated_rows_from_charts(tmp_path):
 
 
 def test_filters_json_lists_berths_and_range(tmp_path):
-    parquet = tmp_path / "d.parquet"
-    _df([_row(row_key="a")]).to_parquet(parquet, index=False)
+    parquet = tmp_path / "parts"
+    _write_parts(parquet, _df([_row(row_key="a")]))
     build_all(parquet, tmp_path / "agg")
     filters = json.loads((tmp_path / "agg" / "filters.json").read_text(encoding="utf-8"))
     assert "Tân Vũ" in filters["berths"]

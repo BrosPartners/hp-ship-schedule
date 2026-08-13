@@ -111,9 +111,9 @@ def test_throughput_predicate_excludes_external_vn_port():
 
 
 def test_real_data_coverage_is_at_least_90_percent():
-    import pandas as pd
-    path = Path(__file__).parent.parent / "data" / "ship_plan.parquet"
-    df = pd.read_parquet(path)
+    from scraper.store import load
+    path = Path(__file__).parent.parent / "data" / "parts"
+    df = load(path)
     bmap = load_berth_map(MAP_PATH)
     recs = apply_berth_map(df.to_dict("records"), bmap)
     assert coverage(recs) >= 0.90

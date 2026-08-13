@@ -47,7 +47,9 @@ def test_unmapped_report_counts_only_the_latest_snapshot_per_day(monkeypatch, tm
     ])
     data_dir = tmp_path / "data"
     data_dir.mkdir()
-    df.to_parquet(data_dir / "ship_plan.parquet", index=False)
+    parts_dir = data_dir / "parts"
+    parts_dir.mkdir()
+    df.to_parquet(parts_dir / "ship_plan_2026-08.parquet", index=False)
     (data_dir / "berth_map.csv").write_text(
         "raw_name,berth,ticker,is_hai_phong,type\n"
         "TAN VU,Tân Vũ,PHP,true,berth\n",

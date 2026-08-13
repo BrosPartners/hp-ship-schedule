@@ -9,6 +9,14 @@ import pytest
 from scraper.store import (SCHEMA_COLUMNS, latest_snapshot, load,
                             mark_crawled_empty, upsert, write_manifest)
 
+# All test records fall in August 2026, so they all land in this one
+# partition file - keeps the .tmp-file assertions below simple.
+PARTITION_NAME = "ship_plan_2026-08.parquet"
+
+
+def _part(dir_path):
+    return dir_path / PARTITION_NAME
+
 
 def _rec(day, key, crawled, to_raw="TAN VU"):
     return {
@@ -27,7 +35,7 @@ def test_load_missing_file_returns_empty_typed_frame(tmp_path):
 
 
 def test_upsert_appends_then_roundtrips(tmp_path):
-    path = tmp_path / "d.parquet"
+    path = tmp_path / "parts"
     assert upsert(path, [_rec(11, "a", datetime(2026, 8, 11, 7, 30))]) == 1
     assert upsert(path, [_rec(12, "b", datetime(2026, 8, 12, 7, 30))]) == 1
     df = load(path)
@@ -36,7 +44,7 @@ def test_upsert_appends_then_roundtrips(tmp_path):
 
 
 def test_recrawl_same_day_replaces_instead_of_duplicating(tmp_path):
-    path = tmp_path / "d.parquet"
+    path = tmp_path / "parts"
     upsert(path, [_rec(11, "a", datetime(2026, 8, 12, 7, 30), to_raw="TAN VU")])
     upsert(path, [_rec(11, "a", datetime(2026, 8, 12, 19, 0), to_raw="DINH VU")])
     df = load(path)
@@ -45,7 +53,7 @@ def test_recrawl_same_day_replaces_instead_of_duplicating(tmp_path):
 
 
 def test_snapshots_from_different_days_are_both_kept(tmp_path):
-    path = tmp_path / "d.parquet"
+    path = tmp_path / "parts"
     upsert(path, [_rec(11, "a", datetime(2026, 8, 10, 7, 30))])
     upsert(path, [_rec(11, "a", datetime(2026, 8, 12, 7, 30))])
     df = load(path)
@@ -55,7 +63,7 @@ def test_snapshots_from_different_days_are_both_kept(tmp_path):
 
 
 def test_manifest_reports_missing_days(tmp_path):
-    path = tmp_path / "d.parquet"
+    path = tmp_path / "parts"
     mpath = tmp_path / "manifest.json"
     upsert(path, [_rec(1, "a", datetime(2026, 8, 12, 7, 30))])
     upsert(path, [_rec(3, "b", datetime(2026, 8, 12, 7, 30))])
@@ -67,7 +75,7 @@ def test_manifest_reports_missing_days(tmp_path):
 
 
 def test_empty_day_is_crawled_not_missing(tmp_path):
-    path = tmp_path / "d.parquet"
+    path = tmp_path / "parts"
     mpath = tmp_path / "manifest.json"
     upsert(path, [_rec(1, "a", datetime(2026, 8, 12, 7, 30))])
     mark_crawled_empty(mpath, date(2026, 8, 2))
@@ -80,7 +88,7 @@ def test_empty_day_is_crawled_not_missing(tmp_path):
 def test_write_manifest_heals_empty_day_that_now_has_rows(tmp_path):
     """A date previously recorded as empty that later has rows must be
     dropped from empty_days (and not appear in missing_days either)."""
-    path = tmp_path / "d.parquet"
+    path = tmp_path / "parts"
     mpath = tmp_path / "manifest.json"
     mark_crawled_empty(mpath, date(2026, 8, 2))
     upsert(path, [_rec(1, "a", datetime(2026, 8, 12, 7, 30))])
@@ -93,7 +101,7 @@ def test_write_manifest_heals_empty_day_that_now_has_rows(tmp_path):
 def test_write_manifest_keeps_legitimately_empty_days(tmp_path):
     """A date in empty_days that still has no rows must stay in empty_days;
     the healing purge must not wipe legitimately empty days."""
-    path = tmp_path / "d.parquet"
+    path = tmp_path / "parts"
     mpath = tmp_path / "manifest.json"
     mark_crawled_empty(mpath, date(2026, 8, 2))
     upsert(path, [_rec(1, "a", datetime(2026, 8, 12, 7, 30))])
@@ -103,22 +111,22 @@ def test_write_manifest_keeps_legitimately_empty_days(tmp_path):
 
 def test_upsert_leaves_no_tmp_file_on_success(tmp_path):
     """A successful upsert should not leave a .tmp file in the data directory."""
-    path = tmp_path / "d.parquet"
+    path = tmp_path / "parts"
     upsert(path, [_rec(11, "a", datetime(2026, 8, 11, 7, 30))])
 
     # Check no .tmp file exists
-    tmp_file = tmp_path / "d.parquet.tmp"
+    tmp_file = tmp_path / "parts" / (PARTITION_NAME + ".tmp")
     assert not tmp_file.exists()
 
 
 def test_upsert_preserves_data_on_write_failure(tmp_path, monkeypatch):
     """If Parquet write fails, the pre-existing file is untouched and no .tmp file left."""
-    path = tmp_path / "d.parquet"
+    path = tmp_path / "parts"
 
     # Write initial data
     initial_records = [_rec(11, "a", datetime(2026, 8, 11, 7, 30))]
     upsert(path, initial_records)
-    original_content = path.read_bytes()
+    original_content = _part(path).read_bytes()
 
     # Simulate write failure: make to_parquet raise on next call
     original_to_parquet = pd.DataFrame.to_parquet
@@ -134,10 +142,10 @@ def test_upsert_preserves_data_on_write_failure(tmp_path, monkeypatch):
         upsert(path, new_records)
 
     # Verify original file is untouched
-    assert path.read_bytes() == original_content
+    assert _part(path).read_bytes() == original_content
 
     # Verify no .tmp file left behind
-    tmp_file = tmp_path / "d.parquet.tmp"
+    tmp_file = tmp_path / "parts" / (PARTITION_NAME + ".tmp")
     assert not tmp_file.exists()
 
     # Verify original data is still loadable
@@ -148,7 +156,7 @@ def test_upsert_preserves_data_on_write_failure(tmp_path, monkeypatch):
 
 def test_write_manifest_preserves_manifest_on_failure(tmp_path, monkeypatch):
     """If manifest write fails, the pre-existing manifest is untouched and no .tmp file left."""
-    path = tmp_path / "d.parquet"
+    path = tmp_path / "parts"
     mpath = tmp_path / "manifest.json"
 
     # Write initial data and manifest
@@ -182,7 +190,7 @@ def test_write_manifest_preserves_manifest_on_failure(tmp_path, monkeypatch):
 def test_upsert_retries_transient_permission_error_then_succeeds(tmp_path, monkeypatch):
     """A transient PermissionError on os.replace (e.g. AV/indexer holding the
     file open) should be retried and the write should still succeed."""
-    path = tmp_path / "d.parquet"
+    path = tmp_path / "parts"
     upsert(path, [_rec(11, "a", datetime(2026, 8, 11, 7, 30))])
 
     calls = {"n": 0}
@@ -208,7 +216,7 @@ def test_upsert_retries_transient_permission_error_then_succeeds(tmp_path, monke
     assert len(df) == 2
     assert set(df["row_key"]) == {"a", "b"}
 
-    tmp_file = tmp_path / "d.parquet.tmp"
+    tmp_file = tmp_path / "parts" / (PARTITION_NAME + ".tmp")
     assert not tmp_file.exists()
 
 
@@ -218,9 +226,9 @@ def test_upsert_persistent_permission_error_names_file_and_preserves_data(
     """If os.replace never succeeds, raise an informative error naming the
     target file, leave the existing file untouched, and clean up the tmp
     file."""
-    path = tmp_path / "d.parquet"
+    path = tmp_path / "parts"
     upsert(path, [_rec(11, "a", datetime(2026, 8, 11, 7, 30))])
-    original_content = path.read_bytes()
+    original_content = _part(path).read_bytes()
 
     def always_fails(src, dst):
         raise PermissionError(
@@ -234,11 +242,11 @@ def test_upsert_persistent_permission_error_names_file_and_preserves_data(
     with pytest.raises(Exception) as excinfo:
         upsert(path, [_rec(12, "b", datetime(2026, 8, 12, 7, 30))])
 
-    assert str(path) in str(excinfo.value)
+    assert str(_part(path)) in str(excinfo.value)
 
-    assert path.read_bytes() == original_content
+    assert _part(path).read_bytes() == original_content
 
-    tmp_file = tmp_path / "d.parquet.tmp"
+    tmp_file = tmp_path / "parts" / (PARTITION_NAME + ".tmp")
     assert not tmp_file.exists()
 
 
@@ -246,7 +254,7 @@ def test_upsert_tolerates_records_missing_berth_columns(tmp_path):
     """Records with only the original 17 keys (no berth_map columns) must
     still upsert successfully, with the seven berth columns present and
     null in the stored result."""
-    path = tmp_path / "d.parquet"
+    path = tmp_path / "parts"
     rec = _rec(11, "a", datetime(2026, 8, 11, 7, 30))
     assert set(rec) & {
         "from_berth", "to_berth", "from_ticker", "to_ticker",
@@ -269,7 +277,7 @@ def test_upsert_cleanup_failure_does_not_mask_original_exception(
 ):
     """If the unlink cleanup itself raises, the original exception type must
     still surface, not the cleanup failure."""
-    path = tmp_path / "d.parquet"
+    path = tmp_path / "parts"
     upsert(path, [_rec(11, "a", datetime(2026, 8, 11, 7, 30))])
 
     def failing_to_parquet(self, *args, **kwargs):

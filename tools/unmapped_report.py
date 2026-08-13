@@ -12,7 +12,7 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from scraper.normalize import load_berth_map  # noqa: E402
-from scraper.store import latest_snapshot  # noqa: E402
+from scraper.store import latest_snapshot, load  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -22,7 +22,7 @@ def main():
     # snapshot per day; reading every snapshot here would make the two
     # unmapped-share numbers drift apart once a day has more than one
     # snapshot, which the daily job now produces routinely.
-    df = latest_snapshot(pd.read_parquet(ROOT / "data" / "ship_plan.parquet"))
+    df = latest_snapshot(load(ROOT / "data" / "parts"))
     map_path = ROOT / "data" / "berth_map.csv"
     known = set(load_berth_map(map_path)) if map_path.exists() else set()
 

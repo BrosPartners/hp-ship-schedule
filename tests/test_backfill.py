@@ -29,7 +29,7 @@ def _rec_for(plan_date, crawled_at):
 
 
 def test_run_ingests_one_day(tmp_path):
-    paths = {"parquet": tmp_path / "d.parquet", "manifest": tmp_path / "m.json"}
+    paths = {"parquet": tmp_path / "parts", "manifest": tmp_path / "m.json"}
     result = run(
         date(2026, 8, 11), date(2026, 8, 11), paths,
         fetcher=lambda target: _html("2026-08-11_full"),
@@ -41,7 +41,7 @@ def test_run_ingests_one_day(tmp_path):
 
 
 def test_resume_skips_days_already_stored(tmp_path):
-    paths = {"parquet": tmp_path / "d.parquet", "manifest": tmp_path / "m.json"}
+    paths = {"parquet": tmp_path / "parts", "manifest": tmp_path / "m.json"}
     run(date(2026, 8, 11), date(2026, 8, 11), paths,
         fetcher=lambda target: _html("2026-08-11_full"),
         now=datetime(2026, 8, 12, 7, 30))
@@ -52,7 +52,7 @@ def test_resume_skips_days_already_stored(tmp_path):
 
 
 def test_a_failing_day_does_not_abort_the_run(tmp_path):
-    paths = {"parquet": tmp_path / "d.parquet", "manifest": tmp_path / "m.json"}
+    paths = {"parquet": tmp_path / "parts", "manifest": tmp_path / "m.json"}
 
     def flaky(target):
         if target == date(2026, 8, 10):
@@ -73,7 +73,7 @@ def test_a_storage_failure_is_recorded_and_does_not_abort_the_run(
     following good day."""
     import scraper.backfill as backfill_module
 
-    paths = {"parquet": tmp_path / "d.parquet", "manifest": tmp_path / "m.json"}
+    paths = {"parquet": tmp_path / "parts", "manifest": tmp_path / "m.json"}
 
     real_upsert = backfill_module.upsert
     calls = {"n": 0}
@@ -108,7 +108,7 @@ def test_a_storage_failure_is_recorded_and_does_not_abort_the_run(
 
 
 def test_run_applies_berth_map_to_stored_rows(tmp_path):
-    paths = {"parquet": tmp_path / "d.parquet", "manifest": tmp_path / "m.json"}
+    paths = {"parquet": tmp_path / "parts", "manifest": tmp_path / "m.json"}
     run(
         date(2026, 8, 11), date(2026, 8, 11), paths,
         fetcher=lambda target: _html("2026-08-11_full"),
@@ -125,7 +125,7 @@ def test_run_applies_berth_map_to_stored_rows(tmp_path):
 
 
 def test_run_raises_before_fetching_when_berth_map_missing(tmp_path):
-    paths = {"parquet": tmp_path / "d.parquet", "manifest": tmp_path / "m.json"}
+    paths = {"parquet": tmp_path / "parts", "manifest": tmp_path / "m.json"}
     calls = {"n": 0}
 
     def fetcher(target):

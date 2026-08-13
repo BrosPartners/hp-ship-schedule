@@ -19,7 +19,7 @@ from scraper.store import load, mark_crawled_empty, upsert, write_manifest
 
 ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_PATHS = {
-    "parquet": ROOT / "data" / "ship_plan.parquet",
+    "parquet": ROOT / "data" / "parts",
     "manifest": ROOT / "data" / "manifest.json",
     "agg": ROOT / "data" / "agg",
 }
