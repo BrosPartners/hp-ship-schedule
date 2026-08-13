@@ -1,13 +1,12 @@
 {
   "empty_days": [
-    "2024-09-07",
-    "2026-08-14"
+    "2024-09-07"
   ],
   "start_date": "2023-01-01",
-  "last_plan_date": "2026-08-13",
-  "last_crawled_at": "2026-08-13 02:47:48.560857",
-  "row_count": 103197,
-  "days_covered": 1320,
+  "last_plan_date": "2026-08-14",
+  "last_crawled_at": "2026-08-13 09:41:45.286953",
+  "row_count": 103281,
+  "days_covered": 1321,
   "days_expected": 1321,
   "missing_days": []
 }
