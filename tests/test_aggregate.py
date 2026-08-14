@@ -32,7 +32,8 @@ def _row(**kw):
         is_sb=False, draft_m=7.0, loa_m=100.0, dwt=10000, gt=8000,
         channel_code="HN", from_raw="CHINA", to_raw="TAN VU",
         from_berth="Trung Quốc", to_berth="Tân Vũ", to_ticker="PHP",
-        from_type="foreign", to_type="berth", is_domestic=False,
+        from_type="foreign", to_type="berth", from_zone=None, to_zone="ha_nguon",
+        is_domestic=False,
         crawled_at=datetime(2026, 8, 12), row_key="k",
     )
     base.update(kw)
@@ -274,6 +275,25 @@ def test_build_all_excludes_future_dated_rows_from_charts(tmp_path):
 
     filters = json.loads((tmp_path / "agg" / "filters.json").read_text(encoding="utf-8"))
     assert filters["date_max"] == "2026-08-11"
+
+
+def test_zone_share_json_reconciles_with_monthly_volume(tmp_path):
+    parquet = tmp_path / "parts"
+    _write_parts(parquet, _df([
+        _row(row_key="a", to_zone="ha_nguon", dwt=10000),
+        _row(row_key="b", to_zone="lach_huyen", dwt=5000),
+        _row(row_key="c", to_zone=None, dwt=1000),
+    ]))
+    build_all(parquet, tmp_path / "agg")
+    monthly = json.loads((tmp_path / "agg" / "monthly_volume.json").read_text(encoding="utf-8"))
+    zone = json.loads((tmp_path / "agg" / "zone_share.json").read_text(encoding="utf-8"))
+
+    month_calls = next(r for r in monthly["rows"] if r["month"] == "2026-08")["calls"]
+    month_dwt = next(r for r in monthly["rows"] if r["month"] == "2026-08")["dwt"]
+    zone_rows = [r for r in zone["rows"] if r["month"] == "2026-08"]
+    assert sum(r["calls"] for r in zone_rows) == month_calls == 3
+    assert sum(r["dwt"] for r in zone_rows) == month_dwt == 16000
+    assert {r["zone"] for r in zone_rows} == {"ha_nguon", "lach_huyen", "unmapped"}
 
 
 def test_filters_json_lists_berths_and_range(tmp_path):

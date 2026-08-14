@@ -144,6 +144,7 @@ def load_berth_map(path):
                 "ticker": (row["ticker"] or "").strip() or None,
                 "is_hai_phong": (row["is_hai_phong"] or "").strip().lower() in _TRUE,
                 "type": (row["type"] or "").strip() or None,
+                "zone": (row.get("zone") or "").strip() or None,
             }
     return mapping
 
@@ -165,6 +166,7 @@ def apply_berth_map(records, berth_map):
             rec[f"{side}_berth"] = hit["berth"] if hit else None
             rec[f"{side}_ticker"] = hit["ticker"] if hit else None
             rec[f"{side}_type"] = hit["type"] if hit else None
+            rec[f"{side}_zone"] = hit["zone"] if hit else None
         both_known = src is not None and dst is not None
         rec["is_domestic"] = bool(
             (both_known and src["type"] != "foreign" and dst["type"] != "foreign")

@@ -165,12 +165,30 @@ def build_all(parquet_path, out_dir, today=None):
     written["plan_slippage"] = _write(out_dir, "plan_slippage",
                                       _slippage(raw))
 
+    # Chart 7 - zone share by month: where destination throughput lands
+    # (lach_huyen / ha_nguon / thuong_nguon), so the owner's downstream-
+    # migration thesis is chartable. A destination whose to_zone is null goes
+    # into an explicit "unmapped" bucket instead of being silently dropped
+    # (the UI is responsible for the Vietnamese label), so the zone totals
+    # always reconcile with monthly_volume's totals.
+    zone_share = (thr.assign(zone=thr["to_zone"].fillna("unmapped"))
+                     .groupby(["month", "zone"])
+                     .agg(calls=("row_key", "count"), dwt=("dwt", "sum"))
+                     .reset_index())
+    written["zone_share"] = _write(out_dir, "zone_share", {
+        "rows": [{"month": r.month, "zone": r.zone,
+                  "calls": int(r.calls), "dwt": int(r.dwt or 0)}
+                 for r in zone_share.itertuples()]
+    })
+
     # Filter options for the UI
     berths = sorted({b for b in pd.concat([df["from_berth"], df["to_berth"]]).dropna()})
     tickers = sorted({t for t in pd.concat([df["from_ticker"], df["to_ticker"]]).dropna()})
+    zones = sorted({z for z in pd.concat([df["from_zone"], df["to_zone"]]).dropna()})
     written["filters"] = _write(out_dir, "filters", {
         "berths": berths,
         "tickers": tickers,
+        "zones": zones,
         "sections": ["roi_cang", "di_chuyen", "vao_cang", "qua_luong"],
         "date_min": df["plan_date"].min().strftime("%Y-%m-%d") if not df.empty else None,
         "date_max": df["plan_date"].max().strftime("%Y-%m-%d") if not df.empty else None,

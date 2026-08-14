@@ -4,6 +4,11 @@ const SECTION_LABELS = {
   roi_cang: "Rời cảng", di_chuyen: "Di chuyển",
   vao_cang: "Vào cảng", qua_luong: "Qua luồng",
 };
+const ZONE_LABELS = {
+  lach_huyen: "Lạch Huyện",
+  ha_nguon: "Hạ nguồn (Đình Vũ)",
+  thuong_nguon: "Thượng nguồn (sông Cấm)",
+};
 const PAGE = 300;
 
 export async function initLookup(root) {
@@ -22,6 +27,10 @@ export async function initLookup(root) {
         ${filters.berths.map((b) => `<option>${b}</option>`).join("")}</select></label>
       <label>Bến đến<select id="f-to-berth"><option value="">Tất cả</option>
         ${filters.berths.map((b) => `<option>${b}</option>`).join("")}</select></label>
+      <label>Khu vực đi<select id="f-from-zone"><option value="">Tất cả</option>
+        ${(filters.zones ?? []).map((z) => `<option value="${z}">${ZONE_LABELS[z] ?? z}</option>`).join("")}</select></label>
+      <label>Khu vực đến<select id="f-to-zone"><option value="">Tất cả</option>
+        ${(filters.zones ?? []).map((z) => `<option value="${z}">${ZONE_LABELS[z] ?? z}</option>`).join("")}</select></label>
       <label>Mã CK<select id="f-ticker"><option value="">Tất cả</option>
         ${filters.tickers.map((t) => `<option>${t}</option>`).join("")}</select></label>
       <label>DWT từ<input type="number" id="f-dwt-min" min="0" placeholder="0"></label>
@@ -63,6 +72,8 @@ export async function initLookup(root) {
     if (val("f-section")) parts.push(`section = ${sqlString(val("f-section"))}`);
     if (val("f-from-berth")) parts.push(`from_berth = ${sqlString(val("f-from-berth"))}`);
     if (val("f-to-berth")) parts.push(`to_berth = ${sqlString(val("f-to-berth"))}`);
+    if (val("f-from-zone")) parts.push(`from_zone = ${sqlString(val("f-from-zone"))}`);
+    if (val("f-to-zone")) parts.push(`to_zone = ${sqlString(val("f-to-zone"))}`);
     if (val("f-ticker"))
       parts.push(`(from_ticker = ${sqlString(val("f-ticker"))} OR to_ticker = ${sqlString(val("f-ticker"))})`);
     if (val("f-dwt-min")) parts.push(`dwt >= ${Number(val("f-dwt-min"))}`);

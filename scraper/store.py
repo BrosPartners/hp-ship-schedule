@@ -61,7 +61,8 @@ SCHEMA_COLUMNS = [
     "plan_date", "section", "plan_time", "vessel_name", "is_sb",
     "draft_m", "loa_m", "dwt", "gt", "tugs", "channel_code",
     "from_raw", "to_raw", "from_berth", "to_berth",
-    "from_ticker", "to_ticker", "from_type", "to_type", "is_domestic",
+    "from_ticker", "to_ticker", "from_type", "to_type",
+    "from_zone", "to_zone", "is_domestic",
     "agent", "pilot", "crawled_at", "row_key",
 ]
 
@@ -78,7 +79,7 @@ SCHEMA_COLUMNS = [
 TEXT_COLUMNS = [
     "section", "vessel_name", "tugs", "channel_code", "from_raw", "to_raw",
     "from_berth", "to_berth", "from_ticker", "to_ticker", "from_type",
-    "to_type", "agent", "pilot", "row_key",
+    "to_type", "from_zone", "to_zone", "agent", "pilot", "row_key",
 ]
 
 

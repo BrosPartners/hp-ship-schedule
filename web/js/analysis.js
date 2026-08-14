@@ -10,14 +10,24 @@ const CHARTS = [
   ["c4", "4. Mix tuyến nội địa vs quốc tế"],
   ["c5", "5. Lượt tàu theo ngày (heatmap)"],
   ["c6", "6. Độ trượt kế hoạch"],
+  ["c7", "7. Dịch chuyển theo khu vực"],
 ];
+
+const ZONE_LABELS = {
+  lach_huyen: "Lạch Huyện",
+  ha_nguon: "Hạ nguồn (Đình Vũ)",
+  thuong_nguon: "Thượng nguồn (sông Cấm)",
+  unmapped: "(chưa map)",
+};
+const ZONE_ORDER = ["thuong_nguon", "ha_nguon", "lach_huyen", "unmapped"];
 
 export async function initAnalysis(root) {
   root.innerHTML = `<p>Đang tải số liệu tổng hợp…</p>`;
   const echarts = await import(ECHARTS);
-  const [volume, share, size, mix, daily, slip] = await Promise.all([
+  const [volume, share, size, mix, daily, slip, zoneShare] = await Promise.all([
     loadJSON("monthly_volume"), loadJSON("berth_share"), loadJSON("vessel_size"),
     loadJSON("route_mix"), loadJSON("daily_heatmap"), loadJSON("plan_slippage"),
+    loadJSON("zone_share"),
   ]);
 
   root.innerHTML = `
@@ -164,6 +174,26 @@ export async function initAnalysis(root) {
         left: "center", top: "middle", textStyle: { fontSize: 14 },
         subtextStyle: { fontSize: 12 },
       },
+    });
+
+    // Chart 7 - zone share by month, 100% stacked area
+    csvData.c7 = zoneShare.rows;
+    const zones = ZONE_ORDER.filter((z) => zoneShare.rows.some((r) => r.zone === z));
+    const zoneTotals = {};
+    for (const r of zoneShare.rows) zoneTotals[r.month] = (zoneTotals[r.month] ?? 0) + r[metric];
+    chart("c7").setOption({
+      tooltip: { trigger: "axis" }, legend: {}, grid: { left: 70, right: 20 },
+      xAxis: { type: "category", data: months },
+      yAxis: { type: "value", axisLabel: { formatter: "{value}%" }, max: 100 },
+      series: zones.map((z) => ({
+        name: ZONE_LABELS[z] ?? z, type: "line", stack: "s", areaStyle: {},
+        emphasis: { focus: "series" },
+        data: months.map((m) => {
+          const hit = zoneShare.rows.find((r) => r.month === m && r.zone === z);
+          const total = zoneTotals[m] ?? 0;
+          return total ? +((100 * (hit?.[metric] ?? 0)) / total).toFixed(2) : 0;
+        }),
+      })),
     });
   }
 

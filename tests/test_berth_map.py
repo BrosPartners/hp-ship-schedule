@@ -110,6 +110,28 @@ def test_throughput_predicate_excludes_external_vn_port():
     assert out["to_type"] != "berth"
 
 
+def test_map_loads_zone_column():
+    bmap = load_berth_map(MAP_PATH)
+    assert bmap["TAN VU"]["zone"] == "ha_nguon"
+    assert bmap["HICT"]["zone"] == "lach_huyen"
+    assert bmap["BACH DANG"]["zone"] == "thuong_nguon"
+    assert bmap["CHINA"]["zone"] is None
+    assert bmap["NINH BINH"]["zone"] is None
+
+
+def test_apply_adds_zone_columns():
+    bmap = load_berth_map(MAP_PATH)
+    out = apply_berth_map([_rec("CHINA", "TAN VU")], bmap)[0]
+    assert out["from_zone"] is None
+    assert out["to_zone"] == "ha_nguon"
+
+
+def test_unmapped_destination_gets_null_zone():
+    bmap = load_berth_map(MAP_PATH)
+    out = apply_berth_map([_rec("TAN VU", "ZZZ NOWHERE")], bmap)[0]
+    assert out["to_zone"] is None
+
+
 def test_real_data_coverage_is_at_least_90_percent():
     from scraper.store import load
     path = Path(__file__).parent.parent / "data" / "parts"
