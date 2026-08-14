@@ -44,6 +44,16 @@ export async function initAnalysis(root) {
         <span><button data-png="${id}">Tải PNG</button>
               <button data-csv="${id}">Tải data</button></span>
       </div>
+      ${id === "c7" ? `
+      <div class="filters" id="c7-zone-filters">
+        <label><input type="checkbox" class="c7-zone-toggle" value="lach_huyen" checked> Lạch Huyện</label>
+        <label><input type="checkbox" class="c7-zone-toggle" value="ha_nguon" checked> Hạ nguồn (Đình Vũ)</label>
+        <label><input type="checkbox" class="c7-zone-toggle" value="thuong_nguon" checked> Thượng nguồn (sông Cấm)</label>
+        <label><input type="checkbox" class="c7-zone-toggle" value="unmapped" checked> (chưa map)</label>
+        <button type="button" id="c7-only-lach-huyen">Chỉ Lạch Huyện</button>
+        <button type="button" id="c7-only-song">Chỉ cảng sông</button>
+        <button type="button" id="c7-clear">Xóa lọc</button>
+      </div>` : ""}
       <div class="chart" id="${id}"></div>`).join("")}
   `;
 
@@ -177,10 +187,20 @@ export async function initAnalysis(root) {
     });
 
     // Chart 7 - zone share by month, 100% stacked area
-    csvData.c7 = zoneShare.rows;
-    const zones = ZONE_ORDER.filter((z) => zoneShare.rows.some((r) => r.zone === z));
+    // Zone filter: when a subset of zones is checked, the series renormalize
+    // to 100% of only the selected zones (not the unfiltered total), so the
+    // chart still reads correctly as a share breakdown. If every toggle is
+    // unchecked we treat that the same as "all checked" (fall back to the
+    // full zone set) rather than render a blank chart.
+    let selectedZones = [...document.querySelectorAll(".c7-zone-toggle:checked")]
+      .map((cb) => cb.value);
+    if (!selectedZones.length) selectedZones = ZONE_ORDER.slice();
+    const zones = ZONE_ORDER.filter((z) => selectedZones.includes(z) &&
+      zoneShare.rows.some((r) => r.zone === z));
+    const rows7 = zoneShare.rows.filter((r) => selectedZones.includes(r.zone));
+    csvData.c7 = rows7;
     const zoneTotals = {};
-    for (const r of zoneShare.rows) zoneTotals[r.month] = (zoneTotals[r.month] ?? 0) + r[metric];
+    for (const r of rows7) zoneTotals[r.month] = (zoneTotals[r.month] ?? 0) + r[metric];
     chart("c7").setOption({
       tooltip: { trigger: "axis" }, legend: {}, grid: { left: 70, right: 20 },
       xAxis: { type: "category", data: months },
@@ -189,12 +209,14 @@ export async function initAnalysis(root) {
         name: ZONE_LABELS[z] ?? z, type: "line", stack: "s", areaStyle: {},
         emphasis: { focus: "series" },
         data: months.map((m) => {
-          const hit = zoneShare.rows.find((r) => r.month === m && r.zone === z);
+          const hit = rows7.find((r) => r.month === m && r.zone === z);
           const total = zoneTotals[m] ?? 0;
           return total ? +((100 * (hit?.[metric] ?? 0)) / total).toFixed(2) : 0;
         }),
       })),
-    });
+    }, true); // notMerge: series count varies with the zone filter, and
+              // echarts merges series by index by default, so a shrinking
+              // selection would otherwise leave stale series behind.
   }
 
   root.querySelectorAll("[data-png]").forEach((btn) =>
@@ -221,6 +243,19 @@ export async function initAnalysis(root) {
 
   document.getElementById("a-metric").addEventListener("change", draw);
   tickerSel.addEventListener("change", draw);
+
+  const zoneToggles = () => [...root.querySelectorAll(".c7-zone-toggle")];
+  const setZones = (values) => {
+    zoneToggles().forEach((cb) => { cb.checked = values.includes(cb.value); });
+    draw();
+  };
+  zoneToggles().forEach((cb) => cb.addEventListener("change", draw));
+  document.getElementById("c7-only-lach-huyen")
+    .addEventListener("click", () => setZones(["lach_huyen"]));
+  document.getElementById("c7-only-song")
+    .addEventListener("click", () => setZones(["ha_nguon", "thuong_nguon"]));
+  document.getElementById("c7-clear")
+    .addEventListener("click", () => setZones(ZONE_ORDER));
   window.addEventListener("resize", () =>
     Object.values(inst).forEach((c) => c.resize()));
   draw();
