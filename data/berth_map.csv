@@ -48,7 +48,7 @@ KOREA,Hàn Quốc,,False,foreign,
 HAI LINH,Hải Linh,,True,berth,ha_nguon
 NGHE AN,Nghệ An,,False,external,
 THAILAND,Thái Lan,,False,foreign,
-DOAN XA,Đoạn Xá,,True,berth,thuong_nguon
+DOAN XA,Đoạn Xá,,True,berth,ha_nguon
 DONG NAI,Đồng Nai,,False,external,
 THUONG LY,Thượng Lý,,True,anchorage,thuong_nguon
 HHIT,HHIT,,True,berth,lach_huyen
