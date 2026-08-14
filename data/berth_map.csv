@@ -1,163 +1,163 @@
-raw_name,berth,ticker,is_hai_phong,type,zone
-TAN VU,Tân Vũ,PHP,true,berth,ha_nguon
-CHUA VE,Chùa Vẽ,PHP,true,berth,thuong_nguon
-HOANG DIEU,Hoàng Diệu,PHP,true,berth,thuong_nguon
-DINH VU,Đình Vũ,DVP,true,berth,ha_nguon
-HICT,Lạch Huyện HICT,,true,berth,lach_huyen
-NAM HAI DINH VU,Nam Hải Đình Vũ,GMD,true,berth,ha_nguon
-NAM HAI,Nam Hải,GMD,true,berth,ha_nguon
-GREEN PORT,Green Port,VSC,true,berth,ha_nguon
-VIP GREEN,VIP Green,VSC,true,berth,ha_nguon
-NAM DINH VU,Nam Đình Vũ,GMD,true,berth,ha_nguon
-VIMC,VIMC Đình Vũ,,true,berth,ha_nguon
-CANG 128,Cảng 128,,true,berth,thuong_nguon
-BACH DANG,Bạch Đằng,,true,berth,thuong_nguon
-HUY VAN,Huy Vân,,true,berth,thuong_nguon
-CHINA,Trung Quốc,,false,foreign,
-NINH BINH,Ninh Bình,,false,external,
-NGHI SON,Nghi Sơn,,false,external,
-CUA LO,Cửa Lò,,false,external,
-HON LA,Hòn La,,false,external,
-HAI DUONG,Hải Dương,,false,external,
-HO CHI MINH,Hồ Chí Minh,,false,external,
-EURO DINH VU,Euro Đình Vũ,,true,berth,ha_nguon
-HONG KONG,Hồng Kông,,false,foreign,
-BEN LAM,Bến Lâm,,false,external,
-QUANG NINH,Quảng Ninh,,false,external,
-HON DAU,Hòn Dấu,,true,anchorage,ha_nguon
-PTSC DINH VU,PTSC Đình Vũ,,true,berth,ha_nguon
-DA NANG,Đà Nẵng,,false,external,
-VUNG TAU,Vũng Tàu,,false,external,
-VAT CACH,Vật Cách,,true,anchorage,thuong_nguon
-KHU NEO VẬT CÁCH,Vật Cách,,true,anchorage,thuong_nguon
-VIP GREEN PORT,VIP Green,VSC,true,berth,ha_nguon
-BEN KIEN,Bến Kiền,,true,berth,thuong_nguon
-SINGAPORE,Singapore,,false,foreign,
-CHINFON,Chinfon,,true,berth,thuong_nguon
-DUNG QUAT,Dung Quất,,false,external,
-THANH HOA,Thanh Hóa,,false,external,
-LACH HUYEN 2,Lạch Huyện 2,,true,berth,lach_huyen
-HAI AN,Hải An,HAH,true,berth,ha_nguon
-TU LONG,Tú Long,,true,anchorage,thuong_nguon
-TAIWAN,Đài Loan,,false,foreign,
-PETEC,Petec,,true,berth,ha_nguon
-MALAYSIA,Malaysia,,false,foreign,
-GIA DUC,Gia Đức,,true,berth,thuong_nguon
-QUANG YEN,Quảng Yên,,false,external,
-KOREA,Hàn Quốc,,false,foreign,
-HAI LINH,Hải Linh,,true,berth,ha_nguon
-NGHE AN,Nghệ An,,false,external,
-THAILAND,Thái Lan,,false,foreign,
-DOAN XA,Đoạn Xá,,true,berth,thuong_nguon
-DONG NAI,Đồng Nai,,false,external,
-THUONG LY,Thượng Lý,,true,anchorage,thuong_nguon
-HHIT,HHIT,,true,berth,lach_huyen
-DIEN CONG,Điền Công,,false,external,
-DA BAC,Đá Bạc,,false,external,
-HTIT,HTIT,,true,berth,lach_huyen
-DIEM DIEN,Diêm Điền,,false,external,
-QUANG NGAI,Quảng Ngãi,,false,external,
-HA TINH,Hà Tĩnh,,false,external,
-NAM NINH,Nam Ninh,,false,external,
-CANG CA HA LONG,Hạ Long,,false,external,
-SAI GON,Sài Gòn,,false,external,
-QUY NHON,Quy Nhơn,,false,external,
-NAM DINH,Nam Định,,false,external,
-INDONESIA,Indonesia,,false,foreign,
-LACH HUYEN 1,Lạch Huyện 1,,true,berth,lach_huyen
-THAI BINH,Thái Bình,,false,external,
-HUE,Huế,,false,external,
-CHU LAI,Chu Lai,,false,external,
-QUANG NAM,Quảng Nam,,false,external,
-HOANG THACH,Hoàng Thạch,,false,external,
-AN GIANG,An Giang,,false,external,
-CAN THO,Cần Thơ,,false,external,
-LONG AN,Long An,,false,external,
-QUANG TRI,Quảng Trị,,false,external,
-JAPAN,Nhật Bản,,false,foreign,
-QUANG BINH,Quảng Bình,,false,external,
-SON DUONG,Sơn Dương,,false,external,
-DONG THAP,Đồng Tháp,,false,external,
-CAM PHA,Cẩm Phả,,false,external,
-PHILIPPINES,Philippines,,false,foreign,
-CAI MEP,Cái Mép,,false,external,
-VUNG ANG,Vũng Áng,,false,external,
-HA LONG,Hạ Long,,false,external,
-KHANH HOA,Khánh Hòa,,false,external,
-CAM RANH,Cam Ranh,,false,external,
-LHD NGHI SON,Nghi Sơn,,false,external,
-NHA TRANG,Nha Trang,,false,external,
-USA,Hoa Kỳ,,false,foreign,
-HON GAI,Hòn Gai,,false,external,
-KY HA,Kỳ Hà,,false,external,
-CHAN MAY,Chân Mây,,false,external,
-BEN NGHE,Bến Nghé,,false,external,
-BRUNEI,Brunei,,false,foreign,
-KHU NEO THƯỢNG LÝ,Thượng Lý,,true,anchorage,thuong_nguon
-TAN THUAN,Tân Thuận,,false,external,
-LONG SON,Long Sơn,,false,external,
-TIEN SA,Tiên Sa,,false,external,
-AUSTRALIA,Australia,,false,foreign,
-CANG CAM,Cảng Cấm,,true,berth,thuong_nguon
-VAN PHONG,Vân Phong,,false,external,
-CANG QTE LONG SON,Long Sơn,,false,external,
-HA NAM,Hà Nam,,false,external,
-GO DAU,Gò Dầu,,false,external,
-TAY NINH,Tây Ninh,,false,external,
-PHU MY,Phú Mỹ,,false,external,
-CAI LAN,Cái Lân,,false,external,
-VICT,VICT,,false,external,
-QTE LONG SON,Long Sơn,,false,external,
-BINH THUAN,Bình Thuận,,false,external,
-UNITED ARAB EMIRATES,UAE,,false,foreign,
-CAI MEP TCIT,Cái Mép,,false,external,
-QT CAI MEP,Cái Mép,,false,external,
-"QINZHOU, CHINA",Trung Quốc,,false,foreign,
-INDIA,Ấn Độ,,false,foreign,
-CUA VIET,Cửa Việt,,false,external,
-GEMALINK,Gemalink,,false,external,
-NINH BINH (NĐ),Ninh Bình,,false,external,
-NHA BE,Nhà Bè,,false,external,
-KHU NEO NAM CAT BA,Khu neo Nam Cát Bà,,true,anchorage,lach_huyen
-CANG VICT - HCM,VICT,,false,external,
-BEN NGHE - HCM,Bến Nghé,,false,external,
-PHU YEN,Phú Yên,,false,external,
-CAMBODIA,Campuchia,,false,foreign,
-HAU GIANG,Hậu Giang,,false,external,
-"NANSHA, CHINA",Trung Quốc,,false,foreign,
-QUI NHON,Quy Nhơn,,false,external,
-"SHANGHAI, CHINA",Trung Quốc,,false,foreign,
-MACAO,Macau,,false,foreign,
-MACAU,Macau,,false,foreign,
-"YANTIAN, CHINA",Trung Quốc,,false,foreign,
-"SHEKOU, CHINA",Trung Quốc,,false,foreign,
-XN CKTT C128,Cảng 128,,true,berth,thuong_nguon
-BEN HANG HOA HAI DUONG,Hải Dương,,false,external,
-"XIAMEN, CHINA",Trung Quốc,,false,foreign,
-"DONGGUAN, CHINA",Trung Quốc,,false,foreign,
-CANADA,Canada,,false,foreign,
-VINH TAN,Vĩnh Tân,,false,external,
-HUNG YEN,Hưng Yên,,false,external,
-SRI LANKA,Sri Lanka,,false,foreign,
-KAOHSIUNG,Kaohsiung,,false,foreign,
-LAEM CHABANG,Laem Chabang,,false,foreign,
-BINH DUONG,Bình Dương,,false,external,
-BINH DINH,Bình Định,,false,external,
-SOC TRANG,Sóc Trăng,,false,external,
-TRA VINH,Trà Vinh,,false,external,
-KIEN GIANG,Kiên Giang,,false,external,
-VUNG RO,Vũng Rô,,false,external,
-THI VAI,Thị Vải,,false,external,
-TANCANG CAI MEP TVAI,Cái Mép,,false,external,
-TAN CANG HIEP PHUOC,Hiệp Phước,,false,external,
-SPCT,SPCT,,false,external,
-QT LONG SON,Long Sơn,,false,external,
-CANG QT LONG SON,Long Sơn,,false,external,
-TRUONG AN,Trường An,,false,external,
-HOA DONG,Hòa Đồng,,false,external,
-PHU THAI,Phú Thái,,false,external,
-DONG HAI,Đông Hải,,false,external,
-LONG BINH,Long Bình,,false,external,
-VINH XUONG,Vĩnh Xương,,false,external,
-HON KHOI,Hòn Khói,,false,external,
-THUONG PHUOC,Thường Phước,,false,external,
+﻿raw_name,berth,ticker,is_hai_phong,type,zone
+TAN VU,Tân Vũ,PHP,True,berth,ha_nguon
+CHUA VE,Chùa Vẽ,PHP,True,berth,ha_nguon
+HOANG DIEU,Hoàng Diệu,PHP,True,berth,thuong_nguon
+DINH VU,Đình Vũ,DVP,True,berth,ha_nguon
+HICT,Lạch Huyện HICT,,True,berth,lach_huyen
+NAM HAI DINH VU,Nam Hải Đình Vũ,GMD,True,berth,ha_nguon
+NAM HAI,Nam Hải,GMD,True,berth,ha_nguon
+GREEN PORT,Green Port,VSC,True,berth,ha_nguon
+VIP GREEN,VIP Green,VSC,True,berth,ha_nguon
+NAM DINH VU,Nam Đình Vũ,GMD,True,berth,ha_nguon
+VIMC,VIMC Đình Vũ,,True,berth,ha_nguon
+CANG 128,Cảng 128,,True,berth,thuong_nguon
+BACH DANG,Bạch Đằng,,True,berth,thuong_nguon
+HUY VAN,Huy Vân,,True,berth,thuong_nguon
+CHINA,Trung Quốc,,False,foreign,
+NINH BINH,Ninh Bình,,False,external,
+NGHI SON,Nghi Sơn,,False,external,
+CUA LO,Cửa Lò,,False,external,
+HON LA,Hòn La,,False,external,
+HAI DUONG,Hải Dương,,False,external,
+HO CHI MINH,Hồ Chí Minh,,False,external,
+EURO DINH VU,Euro Đình Vũ,,True,berth,ha_nguon
+HONG KONG,Hồng Kông,,False,foreign,
+BEN LAM,Bến Lâm,,False,external,
+QUANG NINH,Quảng Ninh,,False,external,
+HON DAU,Hòn Dấu,,True,anchorage,ha_nguon
+PTSC DINH VU,PTSC Đình Vũ,,True,berth,ha_nguon
+DA NANG,Đà Nẵng,,False,external,
+VUNG TAU,Vũng Tàu,,False,external,
+VAT CACH,Vật Cách,,True,anchorage,thuong_nguon
+KHU NEO VẬT CÁCH,Vật Cách,,True,anchorage,thuong_nguon
+VIP GREEN PORT,VIP Green,VSC,True,berth,ha_nguon
+BEN KIEN,Bến Kiền,,True,berth,thuong_nguon
+SINGAPORE,Singapore,,False,foreign,
+CHINFON,Chinfon,,True,berth,thuong_nguon
+DUNG QUAT,Dung Quất,,False,external,
+THANH HOA,Thanh Hóa,,False,external,
+LACH HUYEN 2,Lạch Huyện 2,,True,berth,lach_huyen
+HAI AN,Hải An,HAH,True,berth,ha_nguon
+TU LONG,Tú Long,,True,anchorage,thuong_nguon
+TAIWAN,Đài Loan,,False,foreign,
+PETEC,Petec,,True,berth,ha_nguon
+MALAYSIA,Malaysia,,False,foreign,
+GIA DUC,Gia Đức,,True,berth,thuong_nguon
+QUANG YEN,Quảng Yên,,False,external,
+KOREA,Hàn Quốc,,False,foreign,
+HAI LINH,Hải Linh,,True,berth,ha_nguon
+NGHE AN,Nghệ An,,False,external,
+THAILAND,Thái Lan,,False,foreign,
+DOAN XA,Đoạn Xá,,True,berth,thuong_nguon
+DONG NAI,Đồng Nai,,False,external,
+THUONG LY,Thượng Lý,,True,anchorage,thuong_nguon
+HHIT,HHIT,,True,berth,lach_huyen
+DIEN CONG,Điền Công,,False,external,
+DA BAC,Đá Bạc,,False,external,
+HTIT,HTIT,,True,berth,lach_huyen
+DIEM DIEN,Diêm Điền,,False,external,
+QUANG NGAI,Quảng Ngãi,,False,external,
+HA TINH,Hà Tĩnh,,False,external,
+NAM NINH,Nam Ninh,,False,external,
+CANG CA HA LONG,Hạ Long,,False,external,
+SAI GON,Sài Gòn,,False,external,
+QUY NHON,Quy Nhơn,,False,external,
+NAM DINH,Nam Định,,False,external,
+INDONESIA,Indonesia,,False,foreign,
+LACH HUYEN 1,Lạch Huyện 1,,True,berth,lach_huyen
+THAI BINH,Thái Bình,,False,external,
+HUE,Huế,,False,external,
+CHU LAI,Chu Lai,,False,external,
+QUANG NAM,Quảng Nam,,False,external,
+HOANG THACH,Hoàng Thạch,,False,external,
+AN GIANG,An Giang,,False,external,
+CAN THO,Cần Thơ,,False,external,
+LONG AN,Long An,,False,external,
+QUANG TRI,Quảng Trị,,False,external,
+JAPAN,Nhật Bản,,False,foreign,
+QUANG BINH,Quảng Bình,,False,external,
+SON DUONG,Sơn Dương,,False,external,
+DONG THAP,Đồng Tháp,,False,external,
+CAM PHA,Cẩm Phả,,False,external,
+PHILIPPINES,Philippines,,False,foreign,
+CAI MEP,Cái Mép,,False,external,
+VUNG ANG,Vũng Áng,,False,external,
+HA LONG,Hạ Long,,False,external,
+KHANH HOA,Khánh Hòa,,False,external,
+CAM RANH,Cam Ranh,,False,external,
+LHD NGHI SON,Nghi Sơn,,False,external,
+NHA TRANG,Nha Trang,,False,external,
+USA,Hoa Kỳ,,False,foreign,
+HON GAI,Hòn Gai,,False,external,
+KY HA,Kỳ Hà,,False,external,
+CHAN MAY,Chân Mây,,False,external,
+BEN NGHE,Bến Nghé,,False,external,
+BRUNEI,Brunei,,False,foreign,
+KHU NEO THƯỢNG LÝ,Thượng Lý,,True,anchorage,thuong_nguon
+TAN THUAN,Tân Thuận,,False,external,
+LONG SON,Long Sơn,,False,external,
+TIEN SA,Tiên Sa,,False,external,
+AUSTRALIA,Australia,,False,foreign,
+CANG CAM,Cảng Cấm,,True,berth,thuong_nguon
+VAN PHONG,Vân Phong,,False,external,
+CANG QTE LONG SON,Long Sơn,,False,external,
+HA NAM,Hà Nam,,False,external,
+GO DAU,Gò Dầu,,False,external,
+TAY NINH,Tây Ninh,,False,external,
+PHU MY,Phú Mỹ,,False,external,
+CAI LAN,Cái Lân,,False,external,
+VICT,VICT,,False,external,
+QTE LONG SON,Long Sơn,,False,external,
+BINH THUAN,Bình Thuận,,False,external,
+UNITED ARAB EMIRATES,UAE,,False,foreign,
+CAI MEP TCIT,Cái Mép,,False,external,
+QT CAI MEP,Cái Mép,,False,external,
+"QINZHOU, CHINA",Trung Quốc,,False,foreign,
+INDIA,Ấn Độ,,False,foreign,
+CUA VIET,Cửa Việt,,False,external,
+GEMALINK,Gemalink,,False,external,
+NINH BINH (NĐ),Ninh Bình,,False,external,
+NHA BE,Nhà Bè,,False,external,
+KHU NEO NAM CAT BA,Khu neo Nam Cát Bà,,True,anchorage,lach_huyen
+CANG VICT - HCM,VICT,,False,external,
+BEN NGHE - HCM,Bến Nghé,,False,external,
+PHU YEN,Phú Yên,,False,external,
+CAMBODIA,Campuchia,,False,foreign,
+HAU GIANG,Hậu Giang,,False,external,
+"NANSHA, CHINA",Trung Quốc,,False,foreign,
+QUI NHON,Quy Nhơn,,False,external,
+"SHANGHAI, CHINA",Trung Quốc,,False,foreign,
+MACAO,Macau,,False,foreign,
+MACAU,Macau,,False,foreign,
+"YANTIAN, CHINA",Trung Quốc,,False,foreign,
+"SHEKOU, CHINA",Trung Quốc,,False,foreign,
+XN CKTT C128,Cảng 128,,True,berth,thuong_nguon
+BEN HANG HOA HAI DUONG,Hải Dương,,False,external,
+"XIAMEN, CHINA",Trung Quốc,,False,foreign,
+"DONGGUAN, CHINA",Trung Quốc,,False,foreign,
+CANADA,Canada,,False,foreign,
+VINH TAN,Vĩnh Tân,,False,external,
+HUNG YEN,Hưng Yên,,False,external,
+SRI LANKA,Sri Lanka,,False,foreign,
+KAOHSIUNG,Kaohsiung,,False,foreign,
+LAEM CHABANG,Laem Chabang,,False,foreign,
+BINH DUONG,Bình Dương,,False,external,
+BINH DINH,Bình Định,,False,external,
+SOC TRANG,Sóc Trăng,,False,external,
+TRA VINH,Trà Vinh,,False,external,
+KIEN GIANG,Kiên Giang,,False,external,
+VUNG RO,Vũng Rô,,False,external,
+THI VAI,Thị Vải,,False,external,
+TANCANG CAI MEP TVAI,Cái Mép,,False,external,
+TAN CANG HIEP PHUOC,Hiệp Phước,,False,external,
+SPCT,SPCT,,False,external,
+QT LONG SON,Long Sơn,,False,external,
+CANG QT LONG SON,Long Sơn,,False,external,
+TRUONG AN,Trường An,,False,external,
+HOA DONG,Hòa Đồng,,False,external,
+PHU THAI,Phú Thái,,False,external,
+DONG HAI,Đông Hải,,False,external,
+LONG BINH,Long Bình,,False,external,
+VINH XUONG,Vĩnh Xương,,False,external,
+HON KHOI,Hòn Khói,,False,external,
+THUONG PHUOC,Thường Phước,,False,external,
