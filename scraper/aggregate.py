@@ -107,14 +107,18 @@ def build_all(parquet_path, out_dir, today=None):
     })
 
     # Chart 2 - berth / ticker share by month
+    # `zone` rides along on each row so the UI can offer a zone filter here
+    # without loading berth_map.csv in the browser. Same fillna("unmapped")
+    # convention as chart 7 so one set of labels serves both.
     share = (thr.assign(berth=thr["to_berth"].fillna("(chưa map)"),
-                        ticker=thr["to_ticker"].fillna("(không niêm yết)"))
-                .groupby(["month", "berth", "ticker"])
+                        ticker=thr["to_ticker"].fillna("(không niêm yết)"),
+                        zone=thr["to_zone"].fillna("unmapped"))
+                .groupby(["month", "berth", "ticker", "zone"])
                 .agg(calls=("row_key", "count"), dwt=("dwt", "sum"))
                 .reset_index())
     written["berth_share"] = _write(out_dir, "berth_share", {
         "rows": [{"month": r.month, "berth": r.berth, "ticker": r.ticker,
-                  "calls": int(r.calls), "dwt": int(r.dwt or 0)}
+                  "zone": r.zone, "calls": int(r.calls), "dwt": int(r.dwt or 0)}
                  for r in share.itertuples()]
     })
 

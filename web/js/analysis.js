@@ -44,6 +44,13 @@ export async function initAnalysis(root) {
         <span><button data-png="${id}">Tải PNG</button>
               <button data-csv="${id}">Tải data</button></span>
       </div>
+      ${id === "c2" ? `
+      <div class="filters" id="c2-zone-filters">
+        <label><input type="checkbox" class="c2-zone-toggle" value="lach_huyen" checked> Lạch Huyện</label>
+        <label><input type="checkbox" class="c2-zone-toggle" value="ha_nguon" checked> Đình Vũ (hạ nguồn)</label>
+        <label><input type="checkbox" class="c2-zone-toggle" value="thuong_nguon" checked> Sông Cấm (thượng nguồn)</label>
+        <button type="button" id="c2-clear">Xóa lọc</button>
+      </div>` : ""}
       ${id === "c7" ? `
       <div class="filters" id="c7-zone-filters">
         <label><input type="checkbox" class="c7-zone-toggle" value="lach_huyen" checked> Lạch Huyện</label>
@@ -88,7 +95,15 @@ export async function initAnalysis(root) {
     });
 
     // Chart 2 - stacked share by berth
-    const rows2 = ticker ? share.rows.filter((r) => r.ticker === ticker) : share.rows;
+    // Zone filter behaves like chart 7's: the remaining berths renormalize to
+    // 100% of the *selected* zones, so "chỉ Lạch Huyện" reads as share within
+    // Lạch Huyện. Unchecking everything falls back to the full set rather than
+    // rendering a blank chart.
+    let zones2 = [...root.querySelectorAll(".c2-zone-toggle:checked")]
+      .map((cb) => cb.value);
+    if (!zones2.length) zones2 = Object.keys(ZONE_LABELS);
+    const rows2 = share.rows.filter((r) =>
+      (!ticker || r.ticker === ticker) && zones2.includes(r.zone ?? "unmapped"));
     const berths = [...new Set(rows2.map((r) => r.berth))];
     const totals = {};
     for (const r of rows2) totals[r.month] = (totals[r.month] ?? 0) + r[metric];
@@ -107,7 +122,8 @@ export async function initAnalysis(root) {
           return total ? +((100 * (hit?.[metric] ?? 0)) / total).toFixed(2) : 0;
         }),
       })),
-    });
+    }, true); // notMerge: the berth count changes with the zone filter, so a
+              // merge would leave the unselected zones' series on the chart.
 
     // Chart 3 - average size line plus draft distribution bars
     csvData.c3 = size.monthly;
@@ -256,6 +272,13 @@ export async function initAnalysis(root) {
     .addEventListener("click", () => setZones(["ha_nguon", "thuong_nguon"]));
   document.getElementById("c7-clear")
     .addEventListener("click", () => setZones(ZONE_ORDER));
+
+  const c2Toggles = () => [...root.querySelectorAll(".c2-zone-toggle")];
+  c2Toggles().forEach((cb) => cb.addEventListener("change", draw));
+  document.getElementById("c2-clear").addEventListener("click", () => {
+    c2Toggles().forEach((cb) => { cb.checked = true; });
+    draw();
+  });
   window.addEventListener("resize", () =>
     Object.values(inst).forEach((c) => c.resize()));
   draw();
