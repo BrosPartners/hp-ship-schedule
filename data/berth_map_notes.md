@@ -26,10 +26,24 @@ here leaves `load_berth_map`'s parsing contract untouched.
   assignment was an inference from the naming convention and is now verified.
   ~2,100 movements combined.
 
-## Still provisional
+- **Hòn Dấu** — `ha_nguon`. Confirmed by the owner on 2026-08-14 as a downstream
+  anchorage, which is where it had been provisionally placed, so no figure changed.
+  It carries 3,810 movements but is an `anchorage`, and `throughput_rows` counts
+  only `to_type == "berth"`, so its zone never affects any chart total — it shapes
+  the lookup-tab filter alone.
 
-- **Hòn Dấu** — an outer approach anchorage, placed in `ha_nguon`. It carries
-  3,810 movements but is an anchorage, so it never enters throughput
-  (`throughput_rows` only counts `to_type == "berth"`); the zone assignment
-  only affects the lookup-tab filter, not any chart total. This is the last
-  unconfirmed assignment, and the lowest-stakes one.
+## Nothing is provisional
+
+All four originally-uncertain assignments have been confirmed by the owner, and every
+one of the 37 Hải Phòng locations in `berth_map.csv` now carries a zone — 17
+`ha_nguon`, 14 `thuong_nguon`, 6 `lach_huyen`, no blanks.
+
+Two of the four were wrong and were corrected (Chùa Vẽ, Đoạn Xá); two were right and
+were merely unverified (HHIT/HTIT, Hòn Dấu). That ratio is the argument for keeping
+this file: the Chùa Vẽ error alone inverted the investment reading of the zone trend,
+and it was only caught because the assignment had been flagged as a guess rather than
+presented as fact.
+
+If a new raw berth name appears in `data/unmapped_report.csv` and gets mapped, give it
+a zone at the same time — a Hải Phòng berth with a null zone would silently drop out of
+the zone chart while still counting in every other total.
