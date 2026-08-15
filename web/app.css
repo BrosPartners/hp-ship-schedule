@@ -35,6 +35,12 @@ table.grid th { position: sticky; top: 0; background: #dce7ed;
 table.grid td { padding: 5px 8px; border-top: 1px solid var(--line);
                 white-space: nowrap; }
 .num { text-align: right; font-variant-numeric: tabular-nums; }
+/* Chart 8's per-berth picker: grouped by zone, wraps on narrow screens. */
+.berth-picker { align-items: flex-start; gap: 14px; margin-bottom: 8px; }
+.berth-picker .zone-group { display: flex; flex-wrap: wrap; gap: 4px 10px;
+                            align-items: center; }
+.berth-picker .zone-group b { color: var(--muted, #567); }
+.filters .quick { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 /* Chart 8's companion table: the exact figures behind the bars. */
 .berth-table { margin: -18px 0 28px; overflow-x: auto; }
 .berth-table tfoot td { border-top: 2px solid var(--line); font-weight: 600; }

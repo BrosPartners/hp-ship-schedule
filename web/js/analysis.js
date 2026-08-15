@@ -54,14 +54,21 @@ export async function initAnalysis(root) {
         <button type="button" id="c2-none">Ẩn tất cả</button>
       </div>` : ""}
       ${id === "c8" ? `
-      <div class="filters" id="c8-zone-filters">
-        <label><input type="checkbox" class="c8-zone-toggle" value="lach_huyen" checked> Lạch Huyện</label>
-        <label><input type="checkbox" class="c8-zone-toggle" value="ha_nguon" checked> Đình Vũ (hạ nguồn)</label>
-        <label><input type="checkbox" class="c8-zone-toggle" value="thuong_nguon" checked> Sông Cấm (thượng nguồn)</label>
+      <div class="filters" id="c8-controls">
+        <label>Chỉ tiêu<select id="c8-metric">
+          <option value="calls">Lượt tàu</option>
+          <option value="dwt">Tổng DWT</option>
+        </select></label>
         <label>Kỳ<select id="c8-year"></select></label>
-        <button type="button" id="c8-all">Chọn tất cả</button>
-        <button type="button" id="c8-none">Ẩn tất cả</button>
-      </div>` : ""}
+        <span class="quick">Chọn nhanh:
+          <button type="button" data-c8-zone="lach_huyen">Lạch Huyện</button>
+          <button type="button" data-c8-zone="ha_nguon">Đình Vũ</button>
+          <button type="button" data-c8-zone="thuong_nguon">Sông Cấm</button>
+          <button type="button" id="c8-all">Chọn tất cả</button>
+          <button type="button" id="c8-none">Ẩn tất cả</button>
+        </span>
+      </div>
+      <div class="filters berth-picker" id="c8-berths"></div>` : ""}
       ${id === "c7" ? `
       <div class="filters" id="c7-zone-filters">
         <label><input type="checkbox" class="c7-zone-toggle" value="lach_huyen" checked> Lạch Huyện</label>
@@ -247,31 +254,32 @@ export async function initAnalysis(root) {
 
     // Chart 8 - absolute volume per berth over time, one line per berth. No
     // share here: chart 2 already answers the share question, and this chart
-    // exists to show the level. Which of calls/DWT is plotted follows the top
-    // "Chỉ tiêu" selector, because the two magnitudes (~10^3 vs ~10^7) cannot
-    // share a y-axis and a second axis would make the lines unreadable.
-    const zones8 = [...root.querySelectorAll(".c8-zone-toggle:checked")]
-      .map((cb) => cb.value);
+    // exists to show the level. Selection is per berth (the zone buttons are
+    // only shortcuts that set those checkboxes) so a one-or-two-berth
+    // comparison is two clicks away from "Ẩn tất cả".
+    const metric8 = document.getElementById("c8-metric").value;
+    const picked8 = new Set([...root.querySelectorAll(".c8-berth:checked")]
+      .map((cb) => cb.value));
     const year8 = document.getElementById("c8-year").value;
     const rows8 = share.rows.filter((r) =>
       (!ticker || r.ticker === ticker) &&
-      zones8.includes(r.zone ?? "unmapped") &&
+      picked8.has(r.berth) &&
       (!year8 || r.month.startsWith(year8)));
     const months8 = months.filter((m) => !year8 || m.startsWith(year8));
     // Berths ordered by total size of the plotted metric so the legend and the
     // table columns both read biggest-first.
     const totals8 = new Map();
     for (const r of rows8) {
-      totals8.set(r.berth, (totals8.get(r.berth) ?? 0) + r[metric]);
+      totals8.set(r.berth, (totals8.get(r.berth) ?? 0) + r[metric8]);
     }
     const berths8 = [...totals8.entries()].sort((a, b) => b[1] - a[1])
       .map(([b]) => b);
-    const cell = new Map(rows8.map((r) => [`${r.month}|${r.berth}`, r[metric]]));
+    const cell = new Map(rows8.map((r) => [`${r.month}|${r.berth}`, r[metric8]]));
     csvData.c8 = rows8.map((r) => ({
       month: r.month, berth: r.berth, ticker: r.ticker, zone: r.zone,
       calls: r.calls, dwt: r.dwt,
     }));
-    const metricLabel = metric === "calls" ? "Lượt tàu" : "Tổng DWT";
+    const metricLabel = metric8 === "calls" ? "Lượt tàu" : "Tổng DWT";
     chart("c8").setOption({
       tooltip: { trigger: "axis", order: "valueDesc" },
       legend: { type: "scroll" }, grid: { left: 80, right: 20 },
@@ -344,17 +352,44 @@ export async function initAnalysis(root) {
     .addEventListener("click", () => setZones(ZONE_ORDER));
   document.getElementById("c7-none").addEventListener("click", () => setZones([]));
 
-  // Chart 2 and chart 8 share the same select-all / hide-all wiring.
-  for (const n of ["c2", "c8"]) {
-    const toggles = () => [...root.querySelectorAll(`.${n}-zone-toggle`)];
-    toggles().forEach((cb) => cb.addEventListener("change", draw));
-    const setAll = (checked) => {
-      toggles().forEach((cb) => { cb.checked = checked; });
+  const c2Toggles = () => [...root.querySelectorAll(".c2-zone-toggle")];
+  c2Toggles().forEach((cb) => cb.addEventListener("change", draw));
+  document.getElementById("c2-all").addEventListener("click", () => {
+    c2Toggles().forEach((cb) => { cb.checked = true; }); draw();
+  });
+  document.getElementById("c2-none").addEventListener("click", () => {
+    c2Toggles().forEach((cb) => { cb.checked = false; }); draw();
+  });
+
+  // Chart 8 picks berths individually. The berth list is derived once from the
+  // aggregate (it does not change with any filter), grouped by zone so the
+  // quick-select buttons and the visual grouping agree.
+  const berthZone = new Map();
+  for (const r of share.rows) berthZone.set(r.berth, r.zone ?? "unmapped");
+  const allBerths = [...berthZone.keys()].sort((a, b) =>
+    a.localeCompare(b, "vi"));
+  document.getElementById("c8-berths").innerHTML = ZONE_ORDER
+    .filter((z) => allBerths.some((b) => berthZone.get(b) === z))
+    .map((z) => `<span class="zone-group"><b>${ZONE_LABELS[z] ?? z}:</b>
+      ${allBerths.filter((b) => berthZone.get(b) === z).map((b) =>
+        `<label><input type="checkbox" class="c8-berth" value="${b}" checked> ${b}</label>`
+      ).join("")}</span>`).join("");
+
+  const c8Berths = () => [...root.querySelectorAll(".c8-berth")];
+  c8Berths().forEach((cb) => cb.addEventListener("change", draw));
+  document.getElementById("c8-all").addEventListener("click", () => {
+    c8Berths().forEach((cb) => { cb.checked = true; }); draw();
+  });
+  document.getElementById("c8-none").addEventListener("click", () => {
+    c8Berths().forEach((cb) => { cb.checked = false; }); draw();
+  });
+  root.querySelectorAll("[data-c8-zone]").forEach((btn) =>
+    btn.addEventListener("click", () => {
+      const z = btn.dataset.c8Zone;
+      c8Berths().forEach((cb) => { cb.checked = berthZone.get(cb.value) === z; });
       draw();
-    };
-    document.getElementById(`${n}-all`).addEventListener("click", () => setAll(true));
-    document.getElementById(`${n}-none`).addEventListener("click", () => setAll(false));
-  }
+    }));
+  document.getElementById("c8-metric").addEventListener("change", draw);
 
   const yearSel = document.getElementById("c8-year");
   yearSel.insertAdjacentHTML("beforeend", `<option value="">Toàn bộ</option>`);
