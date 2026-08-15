@@ -84,29 +84,78 @@ def _build_payload(base_fields, target):
     return payload
 
 
-def _fetch_live(target):
-    session = requests.Session()
-    get_resp = session.get(BASE_URL, headers={"User-Agent": USER_AGENT}, timeout=60)
-    get_resp.raise_for_status()
-    get_resp.encoding = get_resp.apparent_encoding or "utf-8"
+class HcmClient:
+    """Reusable HTTP session + harvested ASP.NET form fields.
 
-    fields = _harvest_form_fields(get_resp.text)
-    payload = _build_payload(fields, target)
+    Harvesting the form (a GET) is only needed once: the same
+    `__VIEWSTATE`/`__EVENTVALIDATION` set can drive many consecutive
+    date POSTs on one session. A backfill of ~1,320 days was costing a
+    GET+POST per day (two ~174 KB downloads each) purely to re-harvest
+    fields that hadn't actually changed; reusing them across days turns
+    ~17-20s/day into under a second plus the politeness delay.
 
-    post_resp = session.post(
-        BASE_URL, data=payload, headers={"User-Agent": USER_AGENT}, timeout=60
-    )
-    post_resp.raise_for_status()
-    post_resp.encoding = post_resp.apparent_encoding or "utf-8"
-    html = post_resp.text
+    If a POST fails, returns a non-200, or returns a page whose date
+    doesn't match the request (ASP.NET viewstate can expire or be
+    invalidated server-side), the client re-harvests once and retries
+    before giving up - so a long backfill self-heals instead of dying
+    partway through on a stale form.
+    """
 
-    # Raises DateMismatchError if the payload didn't land - the failure
-    # mode is HTTP 200 with today's page, so status alone proves nothing.
-    parse_page(html, expected_date=target)
-    return html
+    def __init__(self):
+        self.session = None
+        self.fields = None
+
+    def _harvest(self):
+        self.session = requests.Session()
+        get_resp = self.session.get(BASE_URL, headers={"User-Agent": USER_AGENT}, timeout=60)
+        get_resp.raise_for_status()
+        get_resp.encoding = get_resp.apparent_encoding or "utf-8"
+        self.fields = _harvest_form_fields(get_resp.text)
+
+    def _post_and_verify(self, target):
+        payload = _build_payload(self.fields, target)
+        post_resp = self.session.post(
+            BASE_URL, data=payload, headers={"User-Agent": USER_AGENT}, timeout=60
+        )
+        post_resp.raise_for_status()
+        post_resp.encoding = post_resp.apparent_encoding or "utf-8"
+        html = post_resp.text
+
+        # Raises DateMismatchError if the payload didn't land - the failure
+        # mode is HTTP 200 with today's page, so status alone proves nothing.
+        parse_page(html, expected_date=target)
+        return html
+
+    def fetch(self, target):
+        if self.session is None or self.fields is None:
+            self._harvest()
+        try:
+            return self._post_and_verify(target)
+        except Exception:
+            # Stale/invalidated viewstate, a failed POST, or a mismatched
+            # date - re-harvest once and retry. If it fails again, let the
+            # exception propagate as before.
+            self._harvest()
+            return self._post_and_verify(target)
 
 
-def fetch_day(target, cache_dir=DEFAULT_CACHE, delay=1.5, force=False):
+_default_client = None
+
+
+def _get_default_client():
+    global _default_client
+    if _default_client is None:
+        _default_client = HcmClient()
+    return _default_client
+
+
+def reset_default_client():
+    """Drop the memoized default client, forcing a fresh harvest next call."""
+    global _default_client
+    _default_client = None
+
+
+def fetch_day(target, cache_dir=DEFAULT_CACHE, delay=1.5, force=False, client=None):
     """Return the HTML for `target`, using a gzip cache when available.
 
     Before being trusted or cached, a response (fresh or cached) must
@@ -114,6 +163,10 @@ def fetch_day(target, cache_dir=DEFAULT_CACHE, delay=1.5, force=False):
     whose date does not match `target` is treated as a cache miss and
     refetched, the same guard `scraper/fetch.py` (Hải Phòng) applies
     after 79 days of cache poisoning from a looser check.
+
+    `client` lets a caller scraping many days harvest once and reuse the
+    session/form fields across calls (see `HcmClient`); when omitted, a
+    module-level default client is memoized and reused automatically.
     """
     if cache_dir is not None:
         path = _cache_path(cache_dir, target)
@@ -128,7 +181,9 @@ def fetch_day(target, cache_dir=DEFAULT_CACHE, delay=1.5, force=False):
                 return cached_html
             # Poisoned/mismatched cache file - fall through and refetch live.
 
-    html = _fetch_live(target)
+    if client is None:
+        client = _get_default_client()
+    html = client.fetch(target)
 
     if cache_dir is not None:
         path = _cache_path(cache_dir, target)
