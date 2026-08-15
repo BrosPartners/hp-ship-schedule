@@ -33,10 +33,25 @@ jobs:
       - name: Run offline test suite
         run: python -m pytest -q -k "not real_data_coverage"
 
-      - name: Crawl and rebuild
+      - name: Crawl and rebuild (Hai Phong)
+        id: crawl_hp
         run: python -m scraper.daily
 
+      - name: Crawl and rebuild (HCM City)
+        id: crawl_hcm
+        if: always()
+        run: python -m scraper.hcm.daily
+
+      - name: Fail the run if either crawl failed
+        if: always()
+        run: |
+          if [ "${{ steps.crawl_hp.outcome }}" != "success" ] || [ "${{ steps.crawl_hcm.outcome }}" != "success" ]; then
+            echo "Hai Phong: ${{ steps.crawl_hp.outcome }}, HCM: ${{ steps.crawl_hcm.outcome }}" >&2
+            exit 1
+          fi
+
       - name: Commit data changes
+        if: always()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
