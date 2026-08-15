@@ -11,7 +11,7 @@ const CHARTS = [
   ["c5", "5. Lượt tàu theo ngày (heatmap)"],
   ["c6", "6. Độ trượt kế hoạch"],
   ["c7", "7. Dịch chuyển theo khu vực"],
-  ["c8", "8. Lượt tàu & tổng DWT theo từng cảng (kèm thị phần)"],
+  ["c8", "8. Lượt tàu / tổng DWT theo từng cảng, theo tháng"],
 ];
 
 const ZONE_LABELS = {
@@ -245,71 +245,63 @@ export async function initAnalysis(root) {
               // echarts merges series by index by default, so a shrinking
               // selection would otherwise leave stale series behind.
 
-    // Chart 8 - absolute calls and DWT per berth, with the share the owner
-    // reads alongside them. Two x-axes because calls (~10^3) and DWT (~10^7)
-    // cannot share a scale; the table below carries the exact figures.
+    // Chart 8 - absolute volume per berth over time, one line per berth. No
+    // share here: chart 2 already answers the share question, and this chart
+    // exists to show the level. Which of calls/DWT is plotted follows the top
+    // "Chỉ tiêu" selector, because the two magnitudes (~10^3 vs ~10^7) cannot
+    // share a y-axis and a second axis would make the lines unreadable.
     const zones8 = [...root.querySelectorAll(".c8-zone-toggle:checked")]
       .map((cb) => cb.value);
     const year8 = document.getElementById("c8-year").value;
-    const rows8src = share.rows.filter((r) =>
+    const rows8 = share.rows.filter((r) =>
       (!ticker || r.ticker === ticker) &&
       zones8.includes(r.zone ?? "unmapped") &&
       (!year8 || r.month.startsWith(year8)));
-    const agg8 = new Map();
-    for (const r of rows8src) {
-      const cur = agg8.get(r.berth) ??
-        { berth: r.berth, ticker: r.ticker, zone: r.zone, calls: 0, dwt: 0 };
-      cur.calls += r.calls; cur.dwt += r.dwt;
-      agg8.set(r.berth, cur);
+    const months8 = months.filter((m) => !year8 || m.startsWith(year8));
+    // Berths ordered by total size of the plotted metric so the legend and the
+    // table columns both read biggest-first.
+    const totals8 = new Map();
+    for (const r of rows8) {
+      totals8.set(r.berth, (totals8.get(r.berth) ?? 0) + r[metric]);
     }
-    // Sorted by the metric the owner picked in the top selector, so the same
-    // control drives which ranking they see.
-    const list8 = [...agg8.values()].sort((a, b) => a[metric] - b[metric]);
-    const sumCalls = list8.reduce((a, r) => a + r.calls, 0);
-    const sumDwt = list8.reduce((a, r) => a + r.dwt, 0);
-    const pct = (v, total) => (total ? +((100 * v) / total).toFixed(2) : 0);
-    csvData.c8 = list8.map((r) => ({
-      berth: r.berth, ticker: r.ticker, zone: r.zone,
-      calls: r.calls, share_calls_pct: pct(r.calls, sumCalls),
-      dwt: r.dwt, share_dwt_pct: pct(r.dwt, sumDwt),
+    const berths8 = [...totals8.entries()].sort((a, b) => b[1] - a[1])
+      .map(([b]) => b);
+    const cell = new Map(rows8.map((r) => [`${r.month}|${r.berth}`, r[metric]]));
+    csvData.c8 = rows8.map((r) => ({
+      month: r.month, berth: r.berth, ticker: r.ticker, zone: r.zone,
+      calls: r.calls, dwt: r.dwt,
     }));
+    const metricLabel = metric === "calls" ? "Lượt tàu" : "Tổng DWT";
     chart("c8").setOption({
-      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
-      legend: {}, grid: { left: 130, right: 30, top: 60,
-                          height: Math.max(120, list8.length * 22) },
-      xAxis: [{ type: "value", name: "Lượt tàu", position: "top" },
-              { type: "value", name: "Tổng DWT", position: "bottom" }],
-      yAxis: { type: "category", data: list8.map((r) => r.berth) },
-      series: [
-        { name: "Lượt tàu", type: "bar", xAxisIndex: 0,
-          data: list8.map((r) => r.calls),
-          label: { show: true, position: "right",
-                   formatter: (p) => `${p.value.toLocaleString("vi-VN")} `
-                     + `(${pct(p.value, sumCalls).toFixed(1)}%)` } },
-        { name: "Tổng DWT", type: "bar", xAxisIndex: 1,
-          data: list8.map((r) => r.dwt),
-          label: { show: true, position: "right",
-                   formatter: (p) => `${pct(p.value, sumDwt).toFixed(1)}%` } },
-      ],
-    }, true);
-    document.getElementById("c8").style.height =
-      `${Math.max(260, list8.length * 22 + 140)}px`;
+      tooltip: { trigger: "axis", order: "valueDesc" },
+      legend: { type: "scroll" }, grid: { left: 80, right: 20 },
+      xAxis: { type: "category", data: months8 },
+      yAxis: { type: "value", name: metricLabel },
+      series: berths8.map((b) => ({
+        name: b, type: "line", smooth: true, showSymbol: months8.length <= 24,
+        emphasis: { focus: "series" },
+        data: months8.map((m) => cell.get(`${m}|${b}`) ?? 0),
+      })),
+    }, true); // notMerge: the berth count changes with the zone filter.
+    document.getElementById("c8").style.height = "420px";
     chart("c8").resize();
 
     const fmt = (v) => v.toLocaleString("vi-VN");
-    document.getElementById("c8-table").innerHTML = list8.length ? `
+    document.getElementById("c8-table").innerHTML = berths8.length ? `
       <table class="grid">
-        <thead><tr><th>Bến</th><th>Mã CK</th><th>Lượt tàu</th><th>Thị phần lượt</th>
-          <th>Tổng DWT</th><th>Thị phần DWT</th></tr></thead>
-        <tbody>${[...list8].reverse().map((r) => `<tr>
-          <td>${r.berth}</td><td>${r.ticker === "(không niêm yết)" ? "" : r.ticker}</td>
-          <td class="num">${fmt(r.calls)}</td>
-          <td class="num">${pct(r.calls, sumCalls).toFixed(2)}%</td>
-          <td class="num">${fmt(r.dwt)}</td>
-          <td class="num">${pct(r.dwt, sumDwt).toFixed(2)}%</td></tr>`).join("")}</tbody>
-        <tfoot><tr><td>Tổng</td><td></td><td class="num">${fmt(sumCalls)}</td>
-          <td class="num">100%</td><td class="num">${fmt(sumDwt)}</td>
-          <td class="num">100%</td></tr></tfoot>
+        <thead><tr><th>Tháng</th>
+          ${berths8.map((b) => `<th class="num">${b}</th>`).join("")}
+          <th class="num">Tổng</th></tr></thead>
+        <tbody>${months8.map((m) => {
+          const vals = berths8.map((b) => cell.get(`${m}|${b}`) ?? 0);
+          return `<tr><td>${m}</td>
+            ${vals.map((v) => `<td class="num">${fmt(v)}</td>`).join("")}
+            <td class="num">${fmt(vals.reduce((a, v) => a + v, 0))}</td></tr>`;
+        }).join("")}</tbody>
+        <tfoot><tr><td>Tổng</td>
+          ${berths8.map((b) => `<td class="num">${fmt(totals8.get(b))}</td>`).join("")}
+          <td class="num">${fmt([...totals8.values()].reduce((a, v) => a + v, 0))}</td>
+        </tr></tfoot>
       </table>` : `<p>Không có bến nào được chọn.</p>`;
   }
 
