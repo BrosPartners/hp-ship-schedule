@@ -4,8 +4,8 @@ CHUA VE,Chùa Vẽ,PHP,True,berth,ha_nguon
 HOANG DIEU,Hoàng Diệu,PHP,True,berth,thuong_nguon
 DINH VU,Đình Vũ,DVP,True,berth,ha_nguon
 HICT,Lạch Huyện HICT,,True,berth,lach_huyen
-NAM HAI DINH VU,Nam Hải Đình Vũ,GMD,True,berth,ha_nguon
-NAM HAI,Nam Hải,GMD,True,berth,ha_nguon
+NAM HAI DINH VU,Nam Hải Đình Vũ,,True,berth,ha_nguon
+NAM HAI,Nam Hải,,True,berth,ha_nguon
 GREEN PORT,Green Port,VSC,True,berth,ha_nguon
 VIP GREEN,VIP Green,VSC,True,berth,ha_nguon
 NAM DINH VU,Nam Đình Vũ,GMD,True,berth,ha_nguon
@@ -54,7 +54,7 @@ THUONG LY,Thượng Lý,,True,anchorage,thuong_nguon
 HHIT,HHIT,,True,berth,lach_huyen
 DIEN CONG,Điền Công,,False,external,
 DA BAC,Đá Bạc,,False,external,
-HTIT,HTIT,,True,berth,lach_huyen
+HTIT,HTIT,PHP,True,berth,lach_huyen
 DIEM DIEN,Diêm Điền,,False,external,
 QUANG NGAI,Quảng Ngãi,,False,external,
 HA TINH,Hà Tĩnh,,False,external,

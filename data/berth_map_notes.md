@@ -47,3 +47,18 @@ presented as fact.
 If a new raw berth name appears in `data/unmapped_report.csv` and gets mapped, give it
 a zone at the same time — a Hải Phòng berth with a null zone would silently drop out of
 the zone chart while still counting in every other total.
+
+## Ticker corrections (2026-08-15)
+
+The owner corrected two ticker assignments:
+
+- **GMD** operates **Nam Đình Vũ only**. `Nam Hải` and `Nam Hải Đình Vũ` had been
+  attributed to GMD and are now blank. This is not cosmetic: GMD's call count
+  over the full period drops from 6,652 to 3,825, so any earlier reading of
+  GMD's volume from this dashboard was overstated by ~74%.
+- **HTIT** belongs to **PHP** and had no ticker. PHP rises from 6,738 to 7,494.
+
+The derived columns are baked into the Parquet at crawl time, so a `berth_map.csv`
+edit alone changes nothing in history. `python -m tools.remap_berths --apply`
+rewrites them across every partition; run it after any ticker/zone/type edit, then
+re-run `python -m scraper.aggregate`.
