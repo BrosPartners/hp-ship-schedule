@@ -4,7 +4,13 @@ const AGG = "data/agg";
 let connPromise = null;
 
 export async function loadJSON(name) {
-  const url = new URL(`${AGG}/${name}.json`, document.baseURI);
+  return loadJSONFrom(AGG, name);
+}
+
+// Generic variant for datasets outside data/agg (e.g. the TP.HCM dataset,
+// which lives under data/hcm/agg).
+export async function loadJSONFrom(base, name) {
+  const url = new URL(`${base}/${name}.json`, document.baseURI);
   const res = await fetch(url);
   if (!res.ok) throw new Error(`không tải được ${name}.json (${res.status})`);
   return res.json();

@@ -16,12 +16,14 @@
     <button data-tab="lookup">Tra cứu</button>
     <button data-tab="analysis" class="active">Phân tích</button>
     <button data-tab="quality">Chất lượng dữ liệu</button>
+    <button data-tab="hcm">TP.HCM</button>
   </nav>
 
   <main>
     <section id="tab-lookup" hidden></section>
     <section id="tab-analysis"></section>
     <section id="tab-quality" hidden></section>
+    <section id="tab-hcm" hidden></section>
   </main>
 
   <script type="module">
@@ -33,7 +35,7 @@
     async function show(name) {
       document.querySelectorAll("nav.tabs button").forEach((b) =>
         b.classList.toggle("active", b.dataset.tab === name));
-      for (const key of ["lookup", "analysis", "quality"]) {
+      for (const key of ["lookup", "analysis", "quality", "hcm"]) {
         document.getElementById(`tab-${key}`).hidden = key !== name;
       }
       if (loaded.has(name)) return;
@@ -42,6 +44,7 @@
       if (name === "lookup") initLookup(root);
       if (name === "analysis") (await import("./js/analysis.js")).initAnalysis(root);
       if (name === "quality") (await import("./js/quality.js")).initQuality(root);
+      if (name === "hcm") (await import("./js/hcm.js")).initHcm(root);
     }
 
     document.querySelectorAll("nav.tabs button").forEach((b) =>
