@@ -20,10 +20,16 @@ here leaves `load_berth_map`'s parsing contract untouched.
   Chùa Vẽ, as also sitting downstream of the bridge. 1,321 movements. Together with
   the Chùa Vẽ correction this took `thuong_nguon`'s 2026 share from 15.1% to 7.7%.
 
+- **HHIT** and **HTIT** — `lach_huyen`. Confirmed by the owner on 2026-08-14 as
+  Lạch Huyện berths, which is where they had been provisionally placed, so no
+  figure changed. They are absent from the owner's port map; the original
+  assignment was an inference from the naming convention and is now verified.
+  ~2,100 movements combined.
+
 ## Still provisional
+
 - **Hòn Dấu** — an outer approach anchorage, placed in `ha_nguon`. It carries
   3,810 movements but is an anchorage, so it never enters throughput
   (`throughput_rows` only counts `to_type == "berth"`); the zone assignment
-  only affects the lookup-tab filter, not any chart total.
-- **HHIT** and **HTIT** — assumed to be Lạch Huyện terminals based on naming
-  convention; they are not labelled on the owner's map.
+  only affects the lookup-tab filter, not any chart total. This is the last
+  unconfirmed assignment, and the lowest-stakes one.
