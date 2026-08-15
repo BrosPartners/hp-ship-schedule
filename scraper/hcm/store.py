@@ -39,6 +39,8 @@ SCHEMA_COLUMNS = [
     "dwt", "loa_m", "draft_m", "cargo_type",
     "from_position", "to_position", "eta", "etd",
     "tugs", "agent", "channel", "crawled_at", "row_key",
+    "from_berth", "to_berth", "from_cluster", "to_cluster",
+    "from_ticker", "to_ticker", "from_type", "to_type",
 ]
 
 # Columns that can legitimately be all-null within a single monthly
@@ -50,6 +52,8 @@ SCHEMA_COLUMNS = [
 TEXT_COLUMNS = [
     "section", "vessel_name", "nationality", "call_sign", "cargo_type",
     "from_position", "to_position", "tugs", "agent", "channel", "row_key",
+    "from_berth", "to_berth", "from_cluster", "to_cluster",
+    "from_ticker", "to_ticker", "from_type", "to_type",
 ]
 
 

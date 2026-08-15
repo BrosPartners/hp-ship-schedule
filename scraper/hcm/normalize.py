@@ -18,6 +18,7 @@ time leaving berth), departures have one (expected departure from Saigon),
 movements have one (time of the move) - normalized into `eta`/`etd`.
 """
 
+import csv
 import hashlib
 import re
 from datetime import datetime
@@ -146,3 +147,54 @@ def build_records(raw_rows, crawled_at):
         rec["row_key"] = _row_key(rec)
         records.append(rec)
     return records
+
+
+def load_berth_map(path):
+    """Load `data/hcm/berth_map.csv`, keyed by uppercased raw name.
+
+    Separate from `scraper.normalize.load_berth_map` (Hai Phong) because the
+    HCM map has a different column set: `cluster` (the operating complex a
+    berth belongs to, e.g. every `C.LAI n` -> "Cat Lai") instead of Hai
+    Phong's `zone`/`is_hai_phong`, and no zone concept at all.
+    """
+    mapping = {}
+    with open(path, newline="", encoding="utf-8-sig") as fh:
+        for row in csv.DictReader(fh):
+            raw = (row["raw_name"] or "").strip().upper()
+            if not raw:
+                continue
+            mapping[raw] = {
+                "berth": (row["berth"] or "").strip() or None,
+                "cluster": (row["cluster"] or "").strip() or None,
+                "ticker": (row["ticker"] or "").strip() or None,
+                "type": (row["type"] or "").strip() or None,
+            }
+    return mapping
+
+
+def _lookup(berth_map, raw):
+    if not raw:
+        return None
+    return berth_map.get(str(raw).strip().upper())
+
+
+def apply_berth_map(records, berth_map):
+    """Add from_/to_ berth/cluster/ticker/type columns. Raw values untouched.
+
+    Unmapped positions (the long tail, left unmapped by design - see
+    `data/hcm/berth_map_notes.md`) get null berth/cluster/ticker/type; the
+    raw `from_position`/`to_position` string is preserved either way so the
+    detail tab can still show it.
+    """
+    out = []
+    for rec in records:
+        rec = dict(rec)
+        src = _lookup(berth_map, rec.get("from_position"))
+        dst = _lookup(berth_map, rec.get("to_position"))
+        for side, hit in (("from", src), ("to", dst)):
+            rec[f"{side}_berth"] = hit["berth"] if hit else None
+            rec[f"{side}_cluster"] = hit["cluster"] if hit else None
+            rec[f"{side}_ticker"] = hit["ticker"] if hit else None
+            rec[f"{side}_type"] = hit["type"] if hit else None
+        out.append(rec)
+    return out

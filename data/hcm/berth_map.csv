@@ -1,0 +1,114 @@
+﻿raw_name,berth,cluster,ticker,type
+C.LAI 1,Cat Lai 1,Cat Lai,,berth
+C.LAI 2,Cat Lai 2,Cat Lai,,berth
+C.LAI 3,Cat Lai 3,Cat Lai,,berth
+C.LAI 4,Cat Lai 4,Cat Lai,,berth
+C.LAI 5,Cat Lai 5,Cat Lai,,berth
+C.LAI 7,Cat Lai 7,Cat Lai,,berth
+CATLAI 4-5,Cat Lai 4-5,Cat Lai,,berth
+SP-ITC01,SP-ITC 01,SP-ITC,,berth
+SP-ITC02,SP-ITC 02,SP-ITC,,berth
+TCHP 01,Tan Cang Hiep Phuoc 01,Tan Cang Hiep Phuoc,,berth
+CẢNG QUỐC TẾ CAI MÉP (CMIT),CMIT,Cai Mep,,berth
+CAI MEP GEMADEPT-TERMINAL LINK,Gemalink (Cai Mep),Cai Mep,GMD,berth
+CẦU CẢNG SỐ 1 - TCIT,TCIT cau cang 1,Cai Mep,,berth
+CẦU CẢNG SỐ 2 - TCIT,TCIT cau cang 2,Cai Mep,,berth
+CẦU CẢNG SỐ 3 - TCIT,TCIT cau cang 3,Cai Mep,,berth
+CẦU CẢNG SỐ 1 - SP-PSA,SP-PSA cau cang 1,Cai Mep,,berth
+CẦU CẢNG SỐ 2 - SP-PSA,SP-PSA cau cang 2,Cai Mep,,berth
+CẦU CẢNG SỐ 1 - SSIT,SSIT cau cang 1,Cai Mep,,berth
+CẦU 2 - TỔNG HỢP CÁI MÉP,Tong hop Cai Mep cau 2,Cai Mep,,berth
+CẦU CẢNG TỔNG HỢP THỊ VẢI (ODA),Tong hop Thi Vai (ODA),Cai Mep,,berth
+CẦU CẢNG SỐ 1 - BARIA SERECE,Baria Serece cau cang 1,Cai Mep,,berth
+CẦU CẢNG SITV,SITV,Cai Mep,,berth
+CẦU CẢNG SỐ 1 - QT THỊ VẢI,QT Thi Vai cau cang 1,Cai Mep,,berth
+CẦU CẢNG SỐ 2 - QT THỊ VẢI,QT Thi Vai cau cang 2,Cai Mep,,berth
+CẦU CẢNG SỐ 1 – QT LONG AN,QT Long An cau cang 1,Long An,,berth
+CẦU CẢNG SỐ 1 - QT LONG AN,QT Long An cau cang 1,Long An,,berth
+CẦU CẢNG SỐ 2 – QT LONG AN,QT Long An cau cang 2,Long An,,berth
+CẦU CẢNG SỐ 2 - QT LONG AN,QT Long An cau cang 2,Long An,,berth
+CẦU CẢNG SỐ 3 – QT LONG AN,QT Long An cau cang 3,Long An,,berth
+CẦU CẢNG SỐ 3 - QT LONG AN,QT Long An cau cang 3,Long An,,berth
+CẦU CẢNG SỐ 4 – QT LONG AN,QT Long An cau cang 4,Long An,,berth
+CẦU CẢNG SỐ 4 - QT LONG AN,QT Long An cau cang 4,Long An,,berth
+CẦU CẢNG SỐ 5 – QT LONG AN,QT Long An cau cang 5,Long An,,berth
+CẦU CẢNG SỐ 5 - QT LONG AN,QT Long An cau cang 5,Long An,,berth
+CẦU CẢNG SỐ 6 – QT LONG AN,QT Long An cau cang 6,Long An,,berth
+CẦU CẢNG SỐ 6 - QT LONG AN,QT Long An cau cang 6,Long An,,berth
+CẦU CẢNG SỐ 7 – QT LONG AN,QT Long An cau cang 7,Long An,,berth
+CẦU CẢNG SỐ 7 - QT LONG AN,QT Long An cau cang 7,Long An,,berth
+CẦU CẢNG SỐ 1- NM THEP PHU MY,Nha may thep Phu My cau cang 1,Phu My,,berth
+CẦU CẢNG SỐ 2 - NM THEP PHU MY,Nha may thep Phu My cau cang 2,Phu My,,berth
+CẦU CẢNG SỐ 1 - PTSC PHÚ MỸ,PTSC Phu My cau cang 1,Phu My,PVS,berth
+CẦU CẢNG SỐ 2 - PTSC PHÚ MỸ,PTSC Phu My cau cang 2,Phu My,PVS,berth
+CẦU CẢNG SỐ 1- HĐ 129,HD 129 cau cang 1,Phu My,,berth
+CẦU CẢNG SỐ 2 - HĐ 129,HD 129 cau cang 2,Phu My,,berth
+CẦU CẢNG SỐ 1 - XMCP,XMCP cau cang 1,Phu My,,berth
+POSCO,Posco (Phu My),Phu My,,berth
+POSCO YAMATO VINA,Posco Yamato Vina (Phu My),Phu My,,berth
+CẦU CẢNG CHUYÊN DUNG KHO XD PTSC (CÙ LAO TÀO),PTSC kho XD Cu Lao Tao,Phu My,PVS,berth
+THƯƠNG CẢNG VŨNG TÀU,Thuong cang Vung Tau,Vung Tau,,berth
+CẢNG SAO MAI,Cang Sao Mai,Vung Tau,,berth
+SAO MAI,Cang Sao Mai,Vung Tau,,berth
+CÀU CẢNG NHÔ,Cau cang nho (Vung Tau),Vung Tau,,berth
+CẦU CẢNG TCTT,TCTT,Vung Tau,,berth
+CẦU CẢNG KHU CÔNG NGHIỆP ĐÔNG XUYÊN,KCN Dong Xuyen cau cang,Dong Xuyen,,berth
+BẾN CẢNG XI MĂNG HẠ LONG - CẦU CẢNG SỐ 1,Xi mang Ha Long cau cang 1,Vung Tau,,berth
+XMTL 1,Xi mang Thi Vai 1,Cai Mep,,berth
+CẦU CẢNG SỐ 2 - BA SON,Ba Son cau cang 2,Ba Son,,berth
+BẾN CẢNG TKXD 102 MO RONG,TKXD 102 mo rong,Vung Tau,,berth
+CẦU CẢNG CỦA CTY TNHH HÀ LỘC,Ha Loc,Vung Tau,,berth
+FICO,Fico (xi mang),Vung Tau,,berth
+CALOFIC,Calofic (dau an),Vung Tau,,berth
+CHINFON,Chinfon,Vung Tau,,berth
+XĂNG DẦU PETRO VŨNG TÀU,Xang dau Petro Vung Tau,Vung Tau,,berth
+HL PTSC-1,PTSC buoy HL-1,PTSC Vung Tau,PVS,berth
+HL PTSC-2,PTSC buoy HL-2,PTSC Vung Tau,PVS,berth
+HL PTSC-3,PTSC buoy HL-3,PTSC Vung Tau,PVS,berth
+HL PTSC-4,PTSC buoy HL-4,PTSC Vung Tau,PVS,berth
+HL PTSC-5,PTSC buoy HL-5,PTSC Vung Tau,PVS,berth
+HL PTSC-6,PTSC buoy HL-6,PTSC Vung Tau,PVS,berth
+HL PTSC-7,PTSC buoy HL-7,PTSC Vung Tau,PVS,berth
+VSPT-0,Vietsovpetro buoy 0,Vietsovpetro,,berth
+VSPT-1,Vietsovpetro buoy 1,Vietsovpetro,,berth
+VSPT-2,Vietsovpetro buoy 2,Vietsovpetro,,berth
+VSPT-3,Vietsovpetro buoy 3,Vietsovpetro,,berth
+VSPT-4,Vietsovpetro buoy 4,Vietsovpetro,,berth
+VSPT-7,Vietsovpetro buoy 7,Vietsovpetro,,berth
+VSPT-8,Vietsovpetro buoy 8,Vietsovpetro,,berth
+VSPT-9,Vietsovpetro buoy 9,Vietsovpetro,,berth
+PVGAS-1,PV GAS buoy 1,PV GAS Vung Tau,GAS,berth
+PVGAS-2,PV GAS buoy 2,PV GAS Vung Tau,GAS,berth
+PVOIL 1,PV Oil buoy 1,PV Oil Vung Tau,OIL,berth
+PVOIL 2,PV Oil buoy 2,PV Oil Vung Tau,OIL,berth
+1AESSO,Esso/ExxonMobil buoy 1,Esso SPM,,berth
+3AESSO,Esso/ExxonMobil buoy 3,Esso SPM,,berth
+4AESSO,Esso/ExxonMobil buoy 4,Esso SPM,,berth
+1BSHELL,Shell buoy 1B,Shell SPM,,berth
+2ASHELL,Shell buoy 2A,Shell SPM,,berth
+3BSHELL,Shell buoy 3B,Shell SPM,,berth
+4BSHELL,Shell buoy 4B,Shell SPM,,berth
+CALTEX,Caltex buoy,Caltex SPM,,berth
+CALTEX2,Caltex buoy 2,Caltex SPM,,berth
+ELF GAS,Elf/TotalGas buoy,Elf Gas SPM,,berth
+BEN DAM - CD,Ben Dam (Con Dao),,,external
+CÔN ĐẢO - VŨNG TÀU,Con Dao,,,external
+NEO VT,Neo Vung Tau (roads),Vung Tau roads,,anchorage
+BO BANG,Bo Bang (roads),Vung Tau roads,,anchorage
+NGOAI PHAO 0,Ngoai phao 0,Vung Tau roads,,anchorage
+KHU VUC PHAO 2 LUONG VUNG TAU-THI VAI,Khu vuc phao 2 (luong Vung Tau - Thi Vai),Vung Tau roads,,anchorage
+MỎ BẠCH HỔ,Mo Bach Ho (offshore field),,,anchorage
+MỎ ĐẠI HÙNG,Mo Dai Hung (offshore field),,,anchorage
+MỎ RẠNG ĐÔNG,Mo Rang Dong (offshore field),,,anchorage
+TE GIAC TRANG,Te Giac Trang (offshore field),,,anchorage
+RỒNG ĐÔI,Rong Doi (offshore field),,,anchorage
+BAI DO TIEN GIANG,Bai do Tien Giang (spoil ground),,,construction
+KV TRUNG CHUYỂN NV SOÀI RẠP 2025,KV trung chuyen NV Soai Rap 2025,,,construction
+KV TRUNG CHUYỂN NV TCIT 2025,KV trung chuyen NV TCIT 2025,,,construction
+NV LUỒNG SOÀI RẠP 2025 - THƯỢNG LƯU VÀM CỎ,NV luong Soai Rap 2025 - thuong luu Vam Co,,,construction
+NV LUỒNG SOÀI RẠP 2025 - HẠ LƯU VÀM CỎ,NV luong Soai Rap 2025 - ha luu Vam Co,,,construction
+NV LUỒNG SG-VT 2025,NV luong Sai Gon - Vung Tau 2025,,,construction
+KV THI CÔNG LẤN BIỂN CẦN GIỜ,KV thi cong lan bien Can Gio,,,construction
+KV THI CONG CANG MY XUAN A,KV thi cong cang My Xuan A,,,construction
+BÃI ĐỔ CẦN GIỜ,Bai do Can Gio,,,construction
+MO RONG,Mo rong (khu vuc thi cong),,,construction

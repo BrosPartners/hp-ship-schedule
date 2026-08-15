@@ -26,7 +26,7 @@ from pathlib import Path
 import pandas as pd
 
 from scraper.hcm.fetch import fetch_day
-from scraper.hcm.normalize import build_records
+from scraper.hcm.normalize import apply_berth_map, build_records, load_berth_map
 from scraper.hcm.parse import parse_page
 from scraper.hcm.store import mark_crawled_empty, upsert, write_manifest
 from scraper.store import load
@@ -35,6 +35,7 @@ ROOT = Path(__file__).resolve().parent.parent.parent
 DEFAULT_PATHS = {
     "parquet": ROOT / "data" / "hcm" / "parts",
     "manifest": ROOT / "data" / "hcm" / "manifest.json",
+    "berth_map": ROOT / "data" / "hcm" / "berth_map.csv",
 }
 START = date(2023, 1, 1)
 
@@ -65,6 +66,8 @@ def run(start, end, paths=None, fetcher=fetch_day, now=None, today=None):
     crawled_at = now or datetime.now()
     today = today or date.today()
     todo = days_to_do(start, end, paths["manifest"], paths["parquet"])
+    map_path = paths.get("berth_map", DEFAULT_PATHS["berth_map"])
+    berth_map = load_berth_map(map_path) if Path(map_path).exists() else {}
 
     done, empty, failed, rows = 0, 0, [], 0
     for target in todo:
@@ -78,7 +81,7 @@ def run(start, end, paths=None, fetcher=fetch_day, now=None, today=None):
                 print(f"{target}: empty")
                 continue
 
-            records = build_records(raw, crawled_at)
+            records = apply_berth_map(build_records(raw, crawled_at), berth_map)
             written = upsert(paths["parquet"], records)
             rows += written
             done += 1
