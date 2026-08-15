@@ -35,6 +35,9 @@ table.grid th { position: sticky; top: 0; background: #dce7ed;
 table.grid td { padding: 5px 8px; border-top: 1px solid var(--line);
                 white-space: nowrap; }
 .num { text-align: right; font-variant-numeric: tabular-nums; }
+/* Chart 8's companion table: the exact figures behind the bars. */
+.berth-table { margin: -18px 0 28px; overflow-x: auto; }
+.berth-table tfoot td { border-top: 2px solid var(--line); font-weight: 600; }
 .chart { height: 380px; margin-bottom: 28px; }
 .chart-head { display: flex; justify-content: space-between;
               align-items: baseline; margin-bottom: 4px; }

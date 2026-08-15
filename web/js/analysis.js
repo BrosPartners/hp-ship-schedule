@@ -11,6 +11,7 @@ const CHARTS = [
   ["c5", "5. Lượt tàu theo ngày (heatmap)"],
   ["c6", "6. Độ trượt kế hoạch"],
   ["c7", "7. Dịch chuyển theo khu vực"],
+  ["c8", "8. Lượt tàu & tổng DWT theo từng cảng (kèm thị phần)"],
 ];
 
 const ZONE_LABELS = {
@@ -49,7 +50,17 @@ export async function initAnalysis(root) {
         <label><input type="checkbox" class="c2-zone-toggle" value="lach_huyen" checked> Lạch Huyện</label>
         <label><input type="checkbox" class="c2-zone-toggle" value="ha_nguon" checked> Đình Vũ (hạ nguồn)</label>
         <label><input type="checkbox" class="c2-zone-toggle" value="thuong_nguon" checked> Sông Cấm (thượng nguồn)</label>
-        <button type="button" id="c2-clear">Xóa lọc</button>
+        <button type="button" id="c2-all">Chọn tất cả</button>
+        <button type="button" id="c2-none">Ẩn tất cả</button>
+      </div>` : ""}
+      ${id === "c8" ? `
+      <div class="filters" id="c8-zone-filters">
+        <label><input type="checkbox" class="c8-zone-toggle" value="lach_huyen" checked> Lạch Huyện</label>
+        <label><input type="checkbox" class="c8-zone-toggle" value="ha_nguon" checked> Đình Vũ (hạ nguồn)</label>
+        <label><input type="checkbox" class="c8-zone-toggle" value="thuong_nguon" checked> Sông Cấm (thượng nguồn)</label>
+        <label>Kỳ<select id="c8-year"></select></label>
+        <button type="button" id="c8-all">Chọn tất cả</button>
+        <button type="button" id="c8-none">Ẩn tất cả</button>
       </div>` : ""}
       ${id === "c7" ? `
       <div class="filters" id="c7-zone-filters">
@@ -59,9 +70,11 @@ export async function initAnalysis(root) {
         <label><input type="checkbox" class="c7-zone-toggle" value="unmapped" checked> (chưa map)</label>
         <button type="button" id="c7-only-lach-huyen">Chỉ Lạch Huyện</button>
         <button type="button" id="c7-only-song">Chỉ cảng sông</button>
-        <button type="button" id="c7-clear">Xóa lọc</button>
+        <button type="button" id="c7-all">Chọn tất cả</button>
+        <button type="button" id="c7-none">Ẩn tất cả</button>
       </div>` : ""}
-      <div class="chart" id="${id}"></div>`).join("")}
+      <div class="chart" id="${id}"></div>
+      ${id === "c8" ? `<div class="berth-table" id="c8-table"></div>` : ""}`).join("")}
   `;
 
   const tickerSel = document.getElementById("a-ticker");
@@ -97,11 +110,10 @@ export async function initAnalysis(root) {
     // Chart 2 - stacked share by berth
     // Zone filter behaves like chart 7's: the remaining berths renormalize to
     // 100% of the *selected* zones, so "chỉ Lạch Huyện" reads as share within
-    // Lạch Huyện. Unchecking everything falls back to the full set rather than
-    // rendering a blank chart.
-    let zones2 = [...root.querySelectorAll(".c2-zone-toggle:checked")]
+    // Lạch Huyện. Unchecking everything renders an empty chart on purpose -
+    // "Ẩn tất cả" is a filter state the owner asked for, not an error.
+    const zones2 = [...root.querySelectorAll(".c2-zone-toggle:checked")]
       .map((cb) => cb.value);
-    if (!zones2.length) zones2 = Object.keys(ZONE_LABELS);
     const rows2 = share.rows.filter((r) =>
       (!ticker || r.ticker === ticker) && zones2.includes(r.zone ?? "unmapped"));
     const berths = [...new Set(rows2.map((r) => r.berth))];
@@ -205,12 +217,11 @@ export async function initAnalysis(root) {
     // Chart 7 - zone share by month, 100% stacked area
     // Zone filter: when a subset of zones is checked, the series renormalize
     // to 100% of only the selected zones (not the unfiltered total), so the
-    // chart still reads correctly as a share breakdown. If every toggle is
-    // unchecked we treat that the same as "all checked" (fall back to the
-    // full zone set) rather than render a blank chart.
-    let selectedZones = [...document.querySelectorAll(".c7-zone-toggle:checked")]
+    // chart still reads correctly as a share breakdown. Unchecking everything
+    // renders an empty chart on purpose - "Ẩn tất cả" is a filter state the
+    // owner asked for, not an error to be second-guessed.
+    const selectedZones = [...document.querySelectorAll(".c7-zone-toggle:checked")]
       .map((cb) => cb.value);
-    if (!selectedZones.length) selectedZones = ZONE_ORDER.slice();
     const zones = ZONE_ORDER.filter((z) => selectedZones.includes(z) &&
       zoneShare.rows.some((r) => r.zone === z));
     const rows7 = zoneShare.rows.filter((r) => selectedZones.includes(r.zone));
@@ -233,6 +244,73 @@ export async function initAnalysis(root) {
     }, true); // notMerge: series count varies with the zone filter, and
               // echarts merges series by index by default, so a shrinking
               // selection would otherwise leave stale series behind.
+
+    // Chart 8 - absolute calls and DWT per berth, with the share the owner
+    // reads alongside them. Two x-axes because calls (~10^3) and DWT (~10^7)
+    // cannot share a scale; the table below carries the exact figures.
+    const zones8 = [...root.querySelectorAll(".c8-zone-toggle:checked")]
+      .map((cb) => cb.value);
+    const year8 = document.getElementById("c8-year").value;
+    const rows8src = share.rows.filter((r) =>
+      (!ticker || r.ticker === ticker) &&
+      zones8.includes(r.zone ?? "unmapped") &&
+      (!year8 || r.month.startsWith(year8)));
+    const agg8 = new Map();
+    for (const r of rows8src) {
+      const cur = agg8.get(r.berth) ??
+        { berth: r.berth, ticker: r.ticker, zone: r.zone, calls: 0, dwt: 0 };
+      cur.calls += r.calls; cur.dwt += r.dwt;
+      agg8.set(r.berth, cur);
+    }
+    // Sorted by the metric the owner picked in the top selector, so the same
+    // control drives which ranking they see.
+    const list8 = [...agg8.values()].sort((a, b) => a[metric] - b[metric]);
+    const sumCalls = list8.reduce((a, r) => a + r.calls, 0);
+    const sumDwt = list8.reduce((a, r) => a + r.dwt, 0);
+    const pct = (v, total) => (total ? +((100 * v) / total).toFixed(2) : 0);
+    csvData.c8 = list8.map((r) => ({
+      berth: r.berth, ticker: r.ticker, zone: r.zone,
+      calls: r.calls, share_calls_pct: pct(r.calls, sumCalls),
+      dwt: r.dwt, share_dwt_pct: pct(r.dwt, sumDwt),
+    }));
+    chart("c8").setOption({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: {}, grid: { left: 130, right: 30, top: 60,
+                          height: Math.max(120, list8.length * 22) },
+      xAxis: [{ type: "value", name: "Lượt tàu", position: "top" },
+              { type: "value", name: "Tổng DWT", position: "bottom" }],
+      yAxis: { type: "category", data: list8.map((r) => r.berth) },
+      series: [
+        { name: "Lượt tàu", type: "bar", xAxisIndex: 0,
+          data: list8.map((r) => r.calls),
+          label: { show: true, position: "right",
+                   formatter: (p) => `${p.value.toLocaleString("vi-VN")} `
+                     + `(${pct(p.value, sumCalls).toFixed(1)}%)` } },
+        { name: "Tổng DWT", type: "bar", xAxisIndex: 1,
+          data: list8.map((r) => r.dwt),
+          label: { show: true, position: "right",
+                   formatter: (p) => `${pct(p.value, sumDwt).toFixed(1)}%` } },
+      ],
+    }, true);
+    document.getElementById("c8").style.height =
+      `${Math.max(260, list8.length * 22 + 140)}px`;
+    chart("c8").resize();
+
+    const fmt = (v) => v.toLocaleString("vi-VN");
+    document.getElementById("c8-table").innerHTML = list8.length ? `
+      <table class="grid">
+        <thead><tr><th>Bến</th><th>Mã CK</th><th>Lượt tàu</th><th>Thị phần lượt</th>
+          <th>Tổng DWT</th><th>Thị phần DWT</th></tr></thead>
+        <tbody>${[...list8].reverse().map((r) => `<tr>
+          <td>${r.berth}</td><td>${r.ticker === "(không niêm yết)" ? "" : r.ticker}</td>
+          <td class="num">${fmt(r.calls)}</td>
+          <td class="num">${pct(r.calls, sumCalls).toFixed(2)}%</td>
+          <td class="num">${fmt(r.dwt)}</td>
+          <td class="num">${pct(r.dwt, sumDwt).toFixed(2)}%</td></tr>`).join("")}</tbody>
+        <tfoot><tr><td>Tổng</td><td></td><td class="num">${fmt(sumCalls)}</td>
+          <td class="num">100%</td><td class="num">${fmt(sumDwt)}</td>
+          <td class="num">100%</td></tr></tfoot>
+      </table>` : `<p>Không có bến nào được chọn.</p>`;
   }
 
   root.querySelectorAll("[data-png]").forEach((btn) =>
@@ -270,15 +348,28 @@ export async function initAnalysis(root) {
     .addEventListener("click", () => setZones(["lach_huyen"]));
   document.getElementById("c7-only-song")
     .addEventListener("click", () => setZones(["ha_nguon", "thuong_nguon"]));
-  document.getElementById("c7-clear")
+  document.getElementById("c7-all")
     .addEventListener("click", () => setZones(ZONE_ORDER));
+  document.getElementById("c7-none").addEventListener("click", () => setZones([]));
 
-  const c2Toggles = () => [...root.querySelectorAll(".c2-zone-toggle")];
-  c2Toggles().forEach((cb) => cb.addEventListener("change", draw));
-  document.getElementById("c2-clear").addEventListener("click", () => {
-    c2Toggles().forEach((cb) => { cb.checked = true; });
-    draw();
-  });
+  // Chart 2 and chart 8 share the same select-all / hide-all wiring.
+  for (const n of ["c2", "c8"]) {
+    const toggles = () => [...root.querySelectorAll(`.${n}-zone-toggle`)];
+    toggles().forEach((cb) => cb.addEventListener("change", draw));
+    const setAll = (checked) => {
+      toggles().forEach((cb) => { cb.checked = checked; });
+      draw();
+    };
+    document.getElementById(`${n}-all`).addEventListener("click", () => setAll(true));
+    document.getElementById(`${n}-none`).addEventListener("click", () => setAll(false));
+  }
+
+  const yearSel = document.getElementById("c8-year");
+  yearSel.insertAdjacentHTML("beforeend", `<option value="">Toàn bộ</option>`);
+  for (const y of [...new Set(months.map((m) => m.slice(0, 4)))].sort().reverse()) {
+    yearSel.insertAdjacentHTML("beforeend", `<option value="${y}">${y}</option>`);
+  }
+  yearSel.addEventListener("change", draw);
   window.addEventListener("resize", () =>
     Object.values(inst).forEach((c) => c.resize()));
   draw();
