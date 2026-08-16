@@ -44,6 +44,11 @@ table.grid td { padding: 5px 8px; border-top: 1px solid var(--line);
                     background: linear-gradient(90deg, rgb(40,130,200),
                                                 rgb(200,30,20)); }
 .map-legend .na { margin-left: 12px; color: #9aa5ad; }
+/* Chấm ở chế độ kéo sửa toạ độ: divIcon nên phải tự vẽ hình tròn. */
+.map-dot span { display: block; border-radius: 50%; border: 1px solid #22303a;
+                cursor: move; }
+#m-opacity { vertical-align: middle; }
+#m-opacity-val { display: inline-block; min-width: 3.2em; }
 /* Ghi chú của tab bản đồ nằm dưới chú giải nên không dùng margin âm như
    ghi chú đặt ngay dưới một biểu đồ. */
 #tab-map .note { margin-top: 2px; }

@@ -88,3 +88,19 @@ def test_a_port_with_no_ship_data_keeps_null_volume(facts):
 
     point = next(p for p in out["points"] if p["unit"] == "Nam Đình Vũ")
     assert point["calls_12m"] is None and point["teu_per_call"] is None
+
+
+def test_combined_unit_utilisation_uses_the_summed_capacity(facts):
+    # Chùa Vẽ 500k + Tân Vũ chưa có số -> mẫu số là 500k, không phải nhân đôi.
+    teu = _teu([("2026-01", "Chùa Vẽ + Tân Vũ", 250000.0)])
+    out = build(facts, teu, _share([("2026-01", "Chùa Vẽ", 1, 1)]))
+
+    pair = {p["unit"]: p for p in out["points"] if p["unit"] in ("Chùa Vẽ", "Tân Vũ")}
+    assert pair["Chùa Vẽ"]["capacity_shared"] == 500000
+    assert pair["Chùa Vẽ"]["utilisation"] == pair["Tân Vũ"]["utilisation"] == 50.0
+
+
+def test_geo_source_is_carried_through(facts):
+    out = build(facts, _teu([]), _share([]))
+
+    assert all("geo_source" in p for p in out["points"])

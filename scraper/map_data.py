@@ -34,7 +34,9 @@ def load_facts(path):
     with open(path, newline="", encoding="utf-8-sig") as fh:
         return [{"unit": row["unit"].strip(),
                  "lat": _num(row["lat"]), "lon": _num(row["lon"]),
+                 "geo_source": (row.get("geo_source") or "").strip() or None,
                  "capacity_teu": _num(row["capacity_teu"]),
+                 "capacity_source": (row.get("capacity_source") or "").strip(),
                  "thc_usd": _num(row["thc_usd"]),
                  "zone": (row["zone"] or "").strip() or None,
                  "note": (row["note"] or "").strip()}
@@ -105,13 +107,17 @@ def build(facts, teu, share):
     if combined:
         pair = [p for p in points if p["unit"] in ("Chùa Vẽ", "Tân Vũ")]
         calls = sum(p["calls_12m"] or 0 for p in pair)
+        # Công suất cũng phải cộng cả cặp: chia sản lượng chung cho công suất
+        # của riêng một bến sẽ ra tỷ lệ cao gấp đôi thực tế.
+        capacity = sum(p["capacity_teu"] or 0 for p in pair)
         for p in pair:
             p["teu_12m"] = round(combined["teu"])
             p["teu_shared"] = "Chùa Vẽ + Tân Vũ"
+            p["capacity_shared"] = capacity or None
             p["teu_per_call"] = (round(combined["teu"] / calls, 1)
                                  if calls else None)
-            p["utilisation"] = (round(100 * combined["teu"] / p["capacity_teu"], 1)
-                                if p["capacity_teu"] else None)
+            p["utilisation"] = (round(100 * combined["teu"] / capacity, 1)
+                                if capacity else None)
 
     return {"months": months, "window": WINDOW, "points": points}
 
