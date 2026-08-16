@@ -35,6 +35,8 @@ table.grid th { position: sticky; top: 0; background: #dce7ed;
 table.grid td { padding: 5px 8px; border-top: 1px solid var(--line);
                 white-space: nowrap; }
 .num { text-align: right; font-variant-numeric: tabular-nums; }
+.note { margin: -18px 0 26px; font-size: 13px; color: var(--muted, #567);
+        max-width: 70em; line-height: 1.5; }
 /* Chart 8's per-berth picker: grouped by zone, wraps on narrow screens. */
 .berth-picker { align-items: flex-start; gap: 14px; margin-bottom: 8px; }
 .berth-picker .zone-group { display: flex; flex-wrap: wrap; gap: 4px 10px;

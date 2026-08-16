@@ -1,4 +1,5 @@
 import { loadJSON } from "./data.js";
+import { initTeu, teuCharts, teuControlsHtml } from "./teu.js";
 
 const ECHARTS =
   "https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.esm.min.js";
@@ -12,6 +13,7 @@ const CHARTS = [
   ["c6", "6. Độ trượt kế hoạch"],
   ["c7", "7. Dịch chuyển theo khu vực"],
   ["c8", "8. Lượt tàu / tổng DWT theo từng cảng, theo tháng"],
+  ...teuCharts("t", 9),
 ];
 
 const ZONE_LABELS = {
@@ -25,11 +27,12 @@ const ZONE_ORDER = ["thuong_nguon", "ha_nguon", "lach_huyen", "unmapped"];
 export async function initAnalysis(root) {
   root.innerHTML = `<p>Đang tải số liệu tổng hợp…</p>`;
   const echarts = await import(ECHARTS);
-  const [volume, share, size, mix, daily, slip, zoneShare] = await Promise.all([
-    loadJSON("monthly_volume"), loadJSON("berth_share"), loadJSON("vessel_size"),
-    loadJSON("route_mix"), loadJSON("daily_heatmap"), loadJSON("plan_slippage"),
-    loadJSON("zone_share"),
-  ]);
+  const [volume, share, size, mix, daily, slip, zoneShare, teu] =
+    await Promise.all([
+      loadJSON("monthly_volume"), loadJSON("berth_share"), loadJSON("vessel_size"),
+      loadJSON("route_mix"), loadJSON("daily_heatmap"), loadJSON("plan_slippage"),
+      loadJSON("zone_share"), loadJSON("teu"),
+    ]);
 
   root.innerHTML = `
     <div class="filters">
@@ -80,8 +83,17 @@ export async function initAnalysis(root) {
         <button type="button" id="c7-all">Chọn tất cả</button>
         <button type="button" id="c7-none">Ẩn tất cả</button>
       </div>` : ""}
+      ${id === "t-vol" ? teuControlsHtml("t") : ""}
       <div class="chart" id="${id}"></div>
-      ${id === "c8" ? `<div class="berth-table" id="c8-table"></div>` : ""}`).join("")}
+      ${id === "c8" ? `<div class="berth-table" id="c8-table"></div>` : ""}
+      ${id === "t-dwt" ? `<p class="note">
+        Nguồn: Hiệp hội Cảng biển Việt Nam (VPA), sản lượng container thông qua
+        hằng tháng. ${teu.derived_note} Tháng chưa có số VPA để trống chứ không
+        điền 0, nên đường bị đứt đoạn là đúng. Mẫu số (lượt tàu, DWT) đếm
+        <b>mọi</b> lượt cập bến, kể cả tàu không chở container, nên các bến
+        hàng tổng hợp có tỷ lệ thấp giả tạo.
+        VPA gộp Chùa Vẽ và Tân Vũ thành một dòng nên hai bến này tính chung.
+      </p>` : ""}`).join("")}
   `;
 
   const tickerSel = document.getElementById("a-ticker");
@@ -311,6 +323,8 @@ export async function initAnalysis(root) {
           <td class="num">${fmt([...totals8.values()].reduce((a, v) => a + v, 0))}</td>
         </tr></tfoot>
       </table>` : `<p>Không có bến nào được chọn.</p>`;
+
+    drawTeu();
   }
 
   root.querySelectorAll("[data-png]").forEach((btn) =>
@@ -397,6 +411,9 @@ export async function initAnalysis(root) {
     yearSel.insertAdjacentHTML("beforeend", `<option value="${y}">${y}</option>`);
   }
   yearSel.addEventListener("change", draw);
+
+  const drawTeu = initTeu({ root, echarts, teu, prefix: "t", chart, csvData,
+                            redraw: () => drawTeu() });
   window.addEventListener("resize", () =>
     Object.values(inst).forEach((c) => c.resize()));
   draw();

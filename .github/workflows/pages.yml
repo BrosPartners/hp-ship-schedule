@@ -40,6 +40,9 @@ jobs:
           cp -r web/. publish/
           mkdir -p publish/data
           cp -r data/. publish/data/
+          # The VPA workbooks only feed the teu.json build; the browser never
+          # reads them, so keep them out of the published site.
+          rm -rf publish/data/vpa
 
       - uses: actions/configure-pages@v5
 

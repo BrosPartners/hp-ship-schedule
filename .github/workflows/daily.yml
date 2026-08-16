@@ -42,6 +42,13 @@ jobs:
         if: always()
         run: python -m scraper.hcm.daily
 
+      # VPA volume changes monthly, but its denominator (calls, DWT) changes
+      # daily, so teu.json has to be rebuilt after each crawl or it drifts out
+      # of step with every other chart.
+      - name: Rebuild VPA container volume
+        if: always()
+        run: python -m scraper.vpa.build
+
       - name: Fail the run if either crawl failed
         if: always()
         run: |

@@ -3,6 +3,7 @@
 // equivalent. The owner has not asked for feature parity between the two
 // ports, and a smaller honest tab beats a padded one.
 import { loadJSONFrom } from "./data.js";
+import { initTeu, teuCharts, teuControlsHtml } from "./teu.js";
 
 const ECHARTS =
   "https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.esm.min.js";
@@ -12,14 +13,16 @@ const CHARTS = [
   ["h1", "1. Lượt di chuyển & tổng DWT theo tháng"],
   ["h2", "2. Thị phần theo cụm cảng (cluster)"],
   ["h3", "3. Cỡ tàu bình quân theo tháng"],
+  ...teuCharts("ht", 4),
 ];
 
 export async function initHcm(root) {
   root.innerHTML = `<p>Đang tải số liệu tổng hợp TP.HCM…</p>`;
   const echarts = await import(ECHARTS);
-  const [volume, cluster, size, coverage] = await Promise.all([
+  const [volume, cluster, size, coverage, teu] = await Promise.all([
     loadJSONFrom(AGG, "monthly_volume"), loadJSONFrom(AGG, "cluster_share"),
     loadJSONFrom(AGG, "vessel_size"), loadJSONFrom(AGG, "coverage"),
+    loadJSONFrom(AGG, "teu"),
   ]);
 
   root.innerHTML = `
@@ -35,7 +38,16 @@ export async function initHcm(root) {
         <span><button data-png="${id}">Tải PNG</button>
               <button data-csv="${id}">Tải data</button></span>
       </div>
-      <div class="chart" id="${id}"></div>`).join("")}
+      ${id === "ht-vol" ? teuControlsHtml("ht") : ""}
+      <div class="chart" id="${id}"></div>
+      ${id === "ht-dwt" ? `<p class="note">
+        Nguồn: Hiệp hội Cảng biển Việt Nam (VPA). ${teu.derived_note}
+        Chỉ 4 cụm có số container đối chiếu được (Cát Lái, Cái Mép, SP-ITC,
+        Tân Cảng Hiệp Phước); Vũng Tàu, Phú Mỹ, Long An và các phao dầu khí
+        không có sản lượng container nên không xuất hiện ở đây. Cái Mép lấy
+        dòng tổng khu vực Cái Mép - Thị Vải của VPA vì cụm này gộp toàn bộ
+        TCIT/TCTT/CMIT/SSIT/Gemalink.
+      </p>` : ""}`).join("")}
     <h3>Ghi chú độ phủ dữ liệu</h3>
     <p>
       <b>${coverage.unmapped_pct_all}%</b> tổng số lượt (và
@@ -111,6 +123,8 @@ export async function initHcm(root) {
           data: size.monthly.map((r) => r.draft_avg) },
       ],
     });
+
+    drawTeu();
   }
 
   root.querySelectorAll("[data-png]").forEach((btn) =>
@@ -134,6 +148,9 @@ export async function initHcm(root) {
       a.href = url; a.download = `${btn.dataset.csv}.csv`; a.click();
       URL.revokeObjectURL(url);
     }));
+
+  const drawTeu = initTeu({ root, echarts, teu, prefix: "ht", chart, csvData,
+                            redraw: () => drawTeu() });
 
   document.getElementById("h-metric").addEventListener("change", draw);
   window.addEventListener("resize", () =>

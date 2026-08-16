@@ -1,0 +1,69 @@
+vpa_name,unit,dataset,members
+HAI PHONG (CHUA VE+TAN VU),Chùa Vẽ + Tân Vũ,hp,Chùa Vẽ;Tân Vũ
+"HICT (LACH HUYEN, HP)",Lạch Huyện HICT,hp,Lạch Huyện HICT;Lạch Huyện 1;Lạch Huyện 2
+HTIT,HTIT,hp,HTIT
+CANG CONTAINER QT HAI PHONG TIL ( HTIT),HTIT,hp,HTIT
+HHIT,HHIT,hp,HHIT
+CANG CONTAINER QT HATECO HP (HHIT),HHIT,hp,HHIT
+DINH VU,Đình Vũ,hp,Đình Vũ
+NAM DINH VU,Nam Đình Vũ,hp,Nam Đình Vũ
+VIMC DINH VU,VIMC Đình Vũ,hp,VIMC Đình Vũ
+VIP GREEN PORT,VIP Green,hp,VIP Green
+GREEN PORT,Green Port,hp,Green Port
+NAM HAI,Nam Hải,hp,Nam Hải
+NAM HAI DINH VU,Nam Hải Đình Vũ,hp,Nam Hải Đình Vũ
+PTSC DINH VU,PTSC Đình Vũ,hp,PTSC Đình Vũ
+HAI AN,Hải An,hp,Hải An
+DOAN XA,Đoạn Xá,hp,Đoạn Xá
+TAN CANG 128 HAI PHONG,Cảng 128,hp,Cảng 128
+MIPEC,Mipec,hp,
+TC 189 HAI PHONG,TC 189,hp,
+TRANSVINA,Transvina,hp,
+TAN CANG - CAT LAI,Cát Lái,hcm,Cat Lai
+SP-ITC,SP-ITC,hcm,SP-ITC
+TAN CANG - HIEP PHUOC,Tân Cảng Hiệp Phước,hcm,Tan Cang Hiep Phuoc
+CAI MEP - THI VAI,Cái Mép,hcm,Cai Mep
+MIEN BAC,,ignore,
+MIEN TRUNG,,ignore,
+BAC TRUNG BO,,ignore,
+NAM TRUNG BO,,ignore,
+DONG NAM BO (TP.HCM VA DONG NAI),,ignore,
+DONG BANG SCL,,ignore,
+TP HCM,,ignore,
+BR-VT,,ignore,
+QUANG NINH,,ignore,
+CAI LAN (CICT),,ignore,
+NGHE TINH,,ignore,
+CUA LO,,ignore,
+LAO-VIET,,ignore,
+DA NANG,,ignore,
+QUY NHON,,ignore,
+CAM RANH,,ignore,
+BINH DUONG,,ignore,
+DONG NAI,,ignore,
+PHUOC AN,,ignore,
+CANG SAI GON,,ignore,
+BEN NGHE,,ignore,
+VICT,,ignore,
+SPCT,,ignore,
+LOTUS,,ignore,
+PHUOC LONG ICD,,ignore,
+ITC- CORP,,ignore,
+SP-PSA,,ignore,
+TAN CANG - TCIT,,ignore,
+TAN CANG - TCTT,,ignore,
+TAN CANG - TCCT,,ignore,
+CMIT,,ignore,
+SSIT,,ignore,
+SITV,,ignore,
+GEMALINK,,ignore,
+CAN THO,,ignore,
+CAN THO CAI CUI,,ignore,
+TAN CANG CAI CUI,,ignore,
+TRA NOC CAN THO,,ignore,
+TRA NOC CT,,ignore,
+AN GIANG,,ignore,
+VINH LONG,,ignore,
+TAN CANG - SA DEC,,ignore,
+TAN CANG - THOT NOT,,ignore,
+VIMC- HAU GIANG,,ignore,
