@@ -36,6 +36,7 @@ const ZONE_LABELS = {
 };
 const GEO_LABELS = {
   osm: "OpenStreetMap", uoc_luong: "ước lượng - cần chỉnh",
+  google_maps: "Google Maps (bạn dán link)", sua_tay: "kéo tay trên bản đồ",
 };
 // Thang màu: xanh (rẻ / rảnh) → đỏ (đắt / kín). Cùng hướng cho cả hai chỉ
 // tiêu nên đọc bản đồ không phải đổi não giữa hai chế độ.
@@ -95,6 +96,45 @@ function popupHtml(p, window_) {
     + foot.map((t) => `<p class="note">${t}</p>`).join("");
 }
 
+// Thứ tự ưu tiên giống pages/api/parse-maps-link.js của bds-visualize: toạ độ
+// ghim địa điểm (!3d/!4d) đứng trước tâm khung nhìn (@lat,lng), vì @ chỉ là
+// chỗ camera đang đứng chứ không phải điểm được ghim.
+const MAPS_PATTERNS = [
+  /!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/,
+  /[?&]q=(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/,
+  /[?&]ll=(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/,
+  /[?&]destination=(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/,
+  /@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/,
+  /^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/,   // dán thẳng "20.85, 106.72"
+];
+
+export function parseMapsLink(text) {
+  const raw = (text || "").trim();
+  if (!raw) return { error: "Chưa dán link nào." };
+  // Link rút gọn không đọc được từ trình duyệt: Google không trả CORS header
+  // nên fetch bị chặn trước cả khi thấy redirect. Nói thẳng cách xử lý thay vì
+  // để nút bấm im lặng không làm gì.
+  if (/goo\.gl/i.test(raw) && !MAPS_PATTERNS.some((re) => re.test(raw))) {
+    return { error: "Link rút gọn (goo.gl) không đọc được toạ độ trực tiếp. "
+                  + "Bấm \"Mở link\" bên cạnh, đợi Google Maps tải xong rồi "
+                  + "chép URL đầy đủ trên thanh địa chỉ và dán lại.",
+             openable: raw };
+  }
+  for (const re of MAPS_PATTERNS) {
+    const hit = raw.match(re);
+    if (!hit) continue;
+    const lat = parseFloat(hit[1]);
+    const lon = parseFloat(hit[2]);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
+    if (Math.abs(lat) > 90 || Math.abs(lon) > 180) {
+      return { error: `Toạ độ đọc được không hợp lệ (${lat}, ${lon}).` };
+    }
+    return { lat: +lat.toFixed(5), lon: +lon.toFixed(5) };
+  }
+  return { error: "Không tìm thấy toạ độ trong link này. Mở địa điểm trên "
+                + "Google Maps rồi chép URL đầy đủ trên thanh địa chỉ." };
+}
+
 function toCsv(points) {
   const cols = ["unit", "lat", "lon", "geo_source", "capacity_teu",
                 "capacity_source", "thc_usd", "zone", "note"];
@@ -127,7 +167,21 @@ export async function initMap(root) {
       <label><input type="checkbox" id="m-nolabels"> Ẩn tên đường/nhãn bản đồ</label>
       <label><input type="checkbox" id="m-labels" checked> Hiện tên cảng</label>
       <label><input type="checkbox" id="m-drag"> Kéo chấm để sửa toạ độ</label>
+      <button type="button" id="m-geo">📍 Dán link Google Maps</button>
       <button type="button" id="m-export">Tải CSV toạ độ</button>
+    </div>
+    <div class="geo-panel" id="m-geo-panel" hidden>
+      <label>Cảng<select id="m-geo-unit">
+        ${data.points.map((p, i) =>
+          `<option value="${i}">${p.unit}</option>`).join("")}
+      </select></label>
+      <label class="grow">Link Google Maps
+        <input type="text" id="m-geo-link" placeholder="dán link đầy đủ, vd https://www.google.com/maps/place/.../@20.85,106.72,17z/...">
+      </label>
+      <button type="button" id="m-geo-apply">Lấy toạ độ</button>
+      <button type="button" id="m-geo-open" hidden>Mở link</button>
+      <button type="button" id="m-geo-close">Đóng</button>
+      <div id="m-geo-msg" class="geo-msg"></div>
     </div>
     <div id="m-map" class="map"></div>
     <div id="m-legend" class="map-legend"></div>
@@ -231,6 +285,47 @@ export async function initMap(root) {
     document.getElementById("m-opacity-val").textContent = `${slider.value}%`;
     if (tiles) tiles.setOpacity(slider.value / 100);
   });
+
+  const panel = document.getElementById("m-geo-panel");
+  const msg = document.getElementById("m-geo-msg");
+  const openBtn = document.getElementById("m-geo-open");
+  document.getElementById("m-geo").addEventListener("click", () => {
+    panel.hidden = !panel.hidden;
+    if (!panel.hidden) document.getElementById("m-geo-link").focus();
+  });
+  document.getElementById("m-geo-close")
+    .addEventListener("click", () => { panel.hidden = true; });
+
+  function applyLink() {
+    const link = document.getElementById("m-geo-link").value;
+    const point = data.points[+document.getElementById("m-geo-unit").value];
+    const hit = parseMapsLink(link);
+    openBtn.hidden = !hit.openable;
+    if (hit.openable) openBtn.dataset.href = hit.openable;
+    if (hit.error) {
+      msg.className = "geo-msg err";
+      msg.textContent = hit.error;
+      return;
+    }
+    const moved = Math.round(map.distance([point.lat, point.lon],
+                                          [hit.lat, hit.lon]));
+    point.lat = hit.lat;
+    point.lon = hit.lon;
+    point.geo_source = "google_maps";
+    draw();
+    map.setView([hit.lat, hit.lon], Math.max(map.getZoom(), 14));
+    msg.className = "geo-msg ok";
+    msg.textContent = `${point.unit}: ${hit.lat}, ${hit.lon}`
+      + ` (dời ${moved.toLocaleString("vi-VN")} m). `
+      + `Bấm "Tải CSV toạ độ" để lưu lại.`;
+  }
+
+  document.getElementById("m-geo-apply").addEventListener("click", applyLink);
+  document.getElementById("m-geo-link").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") applyLink();
+  });
+  openBtn.addEventListener("click", () =>
+    window.open(openBtn.dataset.href, "_blank", "noopener"));
 
   document.getElementById("m-export").addEventListener("click", () => {
     const blob = new Blob(["﻿" + toCsv(data.points)],

@@ -47,6 +47,18 @@ table.grid td { padding: 5px 8px; border-top: 1px solid var(--line);
 /* Chấm ở chế độ kéo sửa toạ độ: divIcon nên phải tự vẽ hình tròn. */
 .map-dot span { display: block; border-radius: 50%; border: 1px solid #22303a;
                 cursor: move; }
+/* Bảng dán link Google Maps */
+.geo-panel { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: flex-end;
+             padding: 10px 12px; margin-bottom: 10px; border: 1px solid var(--line);
+             border-radius: 6px; background: #f3f7f9; }
+.geo-panel label { display: flex; flex-direction: column; gap: 3px;
+                   font-size: 13px; }
+.geo-panel label.grow { flex: 1 1 420px; }
+.geo-panel input[type="text"] { width: 100%; padding: 6px 8px; font: inherit;
+                                border: 1px solid var(--line); border-radius: 5px; }
+.geo-msg { flex-basis: 100%; font-size: 13px; }
+.geo-msg.ok { color: #17663a; }
+.geo-msg.err { color: #a3231a; }
 #m-opacity { vertical-align: middle; }
 #m-opacity-val { display: inline-block; min-width: 3.2em; }
 /* Ghi chú của tab bản đồ nằm dưới chú giải nên không dùng margin âm như
