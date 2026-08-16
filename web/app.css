@@ -47,6 +47,11 @@ table.grid td { padding: 5px 8px; border-top: 1px solid var(--line);
 /* Chấm ở chế độ kéo sửa toạ độ: divIcon nên phải tự vẽ hình tròn. */
 .map-dot span { display: block; border-radius: 50%; border: 1px solid #22303a;
                 cursor: move; }
+/* Nhắc còn toạ độ sửa chưa đưa vào repo */
+.pending { padding: 9px 12px; margin-bottom: 10px; border-radius: 6px;
+           border: 1px solid #e0b84a; background: #fdf6e0; font-size: 13px;
+           line-height: 1.5; }
+.pending button { margin-left: 8px; }
 /* Bảng dán link Google Maps */
 .geo-panel { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: flex-end;
              padding: 10px 12px; margin-bottom: 10px; border: 1px solid var(--line);

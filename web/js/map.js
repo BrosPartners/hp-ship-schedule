@@ -135,6 +135,45 @@ export function parseMapsLink(text) {
                 + "Google Maps rồi chép URL đầy đủ trên thanh địa chỉ." };
 }
 
+// Toạ độ sửa trên giao diện chỉ nằm trong bộ nhớ trang; tải lại là mất, và
+// đó đúng là lỗi người dùng gặp phải. Lưu tạm vào localStorage để sửa xong
+// không bay mất, nhưng đây vẫn chỉ là bản nháp trên máy này - nguồn thật là
+// data/port_facts.csv trong repo, nên giao diện phải nói rõ còn bao nhiêu sửa
+// chưa đưa vào repo thay vì để người dùng tưởng đã lưu.
+const STORE_KEY = "hp-ship-schedule.port-geo-overrides.v1";
+
+function loadOverrides() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};   // localStorage bị chặn hoặc dữ liệu hỏng: coi như chưa sửa gì
+  }
+}
+
+function saveOverrides(overrides) {
+  try {
+    localStorage.setItem(STORE_KEY, JSON.stringify(overrides));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function applyOverrides(points, overrides) {
+  let applied = 0;
+  for (const p of points) {
+    const hit = overrides[p.unit];
+    // Bỏ qua bản ghi hỏng thay vì để một toạ độ rác đẩy chấm ra giữa đại dương.
+    if (!hit || !Number.isFinite(hit.lat) || !Number.isFinite(hit.lon)) continue;
+    p.lat = hit.lat;
+    p.lon = hit.lon;
+    p.geo_source = hit.geo_source || "sua_tay";
+    applied += 1;
+  }
+  return applied;
+}
+
 function toCsv(points) {
   const cols = ["unit", "lat", "lon", "geo_source", "capacity_teu",
                 "capacity_source", "thc_usd", "zone", "note"];
@@ -146,7 +185,15 @@ export async function initMap(root) {
   root.innerHTML = `<p>Đang tải bản đồ…</p>`;
   const [L, data] = await Promise.all([loadLeaflet(), loadJSON("map_ports")]);
 
+  // Bỏ những đơn vị không còn trong map_ports.json để bản nháp cũ không giữ
+  // mãi một cảng đã bị xoá khỏi port_facts.csv.
+  const known = new Set(data.points.map((p) => p.unit));
+  const overrides = Object.fromEntries(
+    Object.entries(loadOverrides()).filter(([unit]) => known.has(unit)));
+  applyOverrides(data.points, overrides);
+
   root.innerHTML = `
+    <div class="pending" id="m-pending" hidden></div>
     <div class="filters">
       <label>Tô màu theo<select id="m-metric">
         <option value="utilisation">% công suất</option>
@@ -191,9 +238,10 @@ export async function initMap(root) {
       <b>Toạ độ, công suất thiết kế và giá THC nằm trong
       <code>data/port_facts.csv</code>, không phải số cào được.</b>
       Toạ độ ghi rõ nguồn trong popup: lấy từ OpenStreetMap hay còn là ước
-      lượng. Bật "Kéo chấm để sửa toạ độ", kéo về đúng vị trí rồi bấm
-      "Tải CSV toạ độ" để lấy file thay cho <code>port_facts.csv</code>.
-      Cảng nào chưa có công suất/THC thì hiện "chưa có" chứ không đoán.
+      lượng. Sửa toạ độ bằng cách dán link Google Maps hoặc bật "Kéo chấm để
+      sửa toạ độ". <b>Sửa xong chỉ nằm trên trình duyệt này</b> - phải tải CSV
+      rồi thay <code>data/port_facts.csv</code> trong repo thì người khác mới
+      thấy. Cảng nào chưa có công suất/THC thì hiện "chưa có" chứ không đoán.
     </p>`;
 
   const map = L.map("m-map").setView([20.83, 106.78], 11);
@@ -212,6 +260,45 @@ export async function initMap(root) {
   applyTile();
 
   const layer = L.layerGroup().addTo(map);
+  const pending = document.getElementById("m-pending");
+
+  function remember(point) {
+    overrides[point.unit] = { lat: point.lat, lon: point.lon,
+                              geo_source: point.geo_source };
+    const stored = saveOverrides(overrides);
+    renderPending(stored);
+  }
+
+  function renderPending(stored = true) {
+    const units = Object.keys(overrides);
+    pending.hidden = !units.length;
+    if (!units.length) return;
+    pending.innerHTML = `
+      <b>${units.length} toạ độ đã sửa nhưng chưa vào repo:</b>
+      ${units.join(", ")}.
+      ${stored ? "Đang giữ tạm trên trình duyệt này nên tải lại trang không mất."
+               : "<b>Trình duyệt không cho lưu tạm</b> - tải lại trang là mất."}
+      Bấm <b>Tải CSV toạ độ</b> rồi thay <code>data/port_facts.csv</code>
+      trong repo để lưu vĩnh viễn.
+      <button type="button" id="m-forget">Bỏ các sửa này</button>`;
+    document.getElementById("m-forget").addEventListener("click", () => {
+      for (const unit of Object.keys(overrides)) delete overrides[unit];
+      saveOverrides(overrides);
+      renderPending();
+      // Nạp lại toạ độ gốc từ JSON thay vì đoán ngược giá trị cũ.
+      loadJSON("map_ports").then((fresh) => {
+        const byUnit = new Map(fresh.points.map((p) => [p.unit, p]));
+        for (const p of data.points) {
+          const src = byUnit.get(p.unit);
+          if (src) Object.assign(p, { lat: src.lat, lon: src.lon,
+                                      geo_source: src.geo_source });
+        }
+        draw();
+        map.fitBounds(data.points.map((p) => [p.lat, p.lon]),
+                      { padding: [40, 40] });
+      });
+    });
+  }
 
   function draw() {
     const metric = document.getElementById("m-metric").value;
@@ -253,6 +340,7 @@ export async function initMap(root) {
           p.lat = +ll.lat.toFixed(5);
           p.lon = +ll.lng.toFixed(5);
           p.geo_source = "sua_tay";
+          remember(p);
           draw();
         });
       } else {
@@ -312,6 +400,7 @@ export async function initMap(root) {
     point.lat = hit.lat;
     point.lon = hit.lon;
     point.geo_source = "google_maps";
+    remember(point);
     draw();
     map.setView([hit.lat, hit.lon], Math.max(map.getZoom(), 14));
     msg.className = "geo-msg ok";
@@ -336,6 +425,7 @@ export async function initMap(root) {
     URL.revokeObjectURL(url);
   });
 
+  renderPending();
   draw();
   map.fitBounds(data.points.map((p) => [p.lat, p.lon]), { padding: [40, 40] });
 }
