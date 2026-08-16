@@ -5,7 +5,7 @@
   "last_crawled_at": "2026-08-15 17:27:51.493734",
   "row_count": 185642,
   "days_covered": 1324,
-  "days_expected": 1323,
+  "days_expected": 1324,
   "missing_days": [],
   "partitions": [
     "ship_plan_2023-01.parquet",
