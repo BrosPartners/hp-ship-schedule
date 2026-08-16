@@ -1,22 +1,22 @@
-unit,lat,lon,geo_source,capacity_teu,capacity_source,thc_usd,zone,note
+﻿unit,lat,lon,geo_source,capacity_teu,capacity_source,thc_usd,zone,note
 Bạch Đằng,20.86677,106.67273,osm,,,,thuong_nguon,Toạ độ lấy theo nhà máy đóng tàu Bạch Đằng trên OSM
-Hoàng Diệu,20.86803,106.69018,osm,,"FPTS/PHP: 10 triệu tấn/năm hàng rời, không quy ra TEU",,thuong_nguon,Cảng hàng rời; đang di dời theo quy hoạch
-Cảng 128,20.87000,106.70500,uoc_luong,,,,thuong_nguon,
-Nam Hải,20.86884,106.71498,osm,,,,ha_nguon,
-Đoạn Xá,20.86786,106.71628,osm,,,,ha_nguon,
-Transvina,20.86500,106.71900,uoc_luong,,,,ha_nguon,Không có trong berth_map
-Green Port,20.86443,106.72173,osm,300000,Haseco 06/2026 dẫn VSC (Cảng Xanh),,ha_nguon,Hiệu suất 82% theo Haseco
-Chùa Vẽ,20.85995,106.72769,osm,500000,FPTS 08/2025 dẫn PHP,42,ha_nguon,VPA gộp sản lượng chung với Tân Vũ
-TC 189,20.85700,106.73200,uoc_luong,,,,ha_nguon,Không có trong berth_map
-Hải An,20.85400,106.73600,uoc_luong,,,,ha_nguon,
-Tân Vũ,20.85263,106.74183,osm,1000000,FPTS 08/2025 dẫn PHP,42,ha_nguon,VPA gộp sản lượng chung với Chùa Vẽ
-VIP Green,20.84900,106.75200,uoc_luong,800000,Haseco 06/2026 dẫn VSC (Cảng Xanh Vip),46,ha_nguon,Hiệu suất 112% theo Haseco
-PTSC Đình Vũ,20.84600,106.76000,uoc_luong,,,38,ha_nguon,
-Mipec,20.84300,106.76600,uoc_luong,,,,ha_nguon,Không có trong berth_map
-VIMC Đình Vũ,20.84000,106.77000,uoc_luong,500000,Haseco 06/2026 dẫn VSC,,ha_nguon,Hiệu suất 100% theo Haseco
-Đình Vũ,20.83774,106.77270,osm,600000,FPTS 08/2025 dẫn PHP,,ha_nguon,
-Nam Hải Đình Vũ,20.83400,106.78200,uoc_luong,550000,Haseco 06/2026 dẫn VSC,,ha_nguon,Nguồn báo chí ghi 500k; dùng số của Haseco
-Nam Đình Vũ,20.82000,106.80200,uoc_luong,2000000,"Owner (Phase 1-2 1.200k + Phase 3 800k)",46,ha_nguon,Haseco ghi mở rộng lên 1,75 triệu - hai số lệch nhau
+Hoàng Diệu,20.86583,106.68966,google_maps,,"FPTS/PHP: 10 triệu tấn/năm hàng rời, không quy ra TEU",,thuong_nguon,Cảng hàng rời; đang di dời theo quy hoạch
+Cảng 128,20.85596,106.73774,google_maps,,,,thuong_nguon,
+Nam Hải,20.86821,106.71383,google_maps,,,,ha_nguon,
+Đoạn Xá,20.86771,106.71646,google_maps,,,,ha_nguon,
+Transvina,20.86771,106.71646,google_maps,,,,ha_nguon,Không có trong berth_map
+Green Port,20.86771,106.71646,google_maps,300000,Haseco 06/2026 dẫn VSC (Cảng Xanh),,ha_nguon,Hiệu suất 82% theo Haseco
+Chùa Vẽ,20.86028,106.72472,google_maps,500000,FPTS 08/2025 dẫn PHP,42,ha_nguon,VPA gộp sản lượng chung với Tân Vũ
+TC 189,20.84579,106.75672,google_maps,,,,ha_nguon,Không có trong berth_map
+Hải An,20.84604,106.74654,google_maps,,,,ha_nguon,
+Tân Vũ,20.84061,106.76863,google_maps,1000000,FPTS 08/2025 dẫn PHP,42,ha_nguon,VPA gộp sản lượng chung với Chùa Vẽ
+VIP Green,20.82535,106.78788,google_maps,800000,Haseco 06/2026 dẫn VSC (Cảng Xanh Vip),46,ha_nguon,Hiệu suất 112% theo Haseco
+PTSC Đình Vũ,20.84064,106.76863,google_maps,,,38,ha_nguon,
+Mipec,20.82552,106.80507,google_maps,,,,ha_nguon,Không có trong berth_map
+VIMC Đình Vũ,20.83373,106.77881,google_maps,500000,Haseco 06/2026 dẫn VSC,,ha_nguon,Hiệu suất 100% theo Haseco
+Đình Vũ,20.82745,106.7759,google_maps,600000,FPTS 08/2025 dẫn PHP,,ha_nguon,
+Nam Hải Đình Vũ,20.82774,106.78569,google_maps,550000,Haseco 06/2026 dẫn VSC,,ha_nguon,Nguồn báo chí ghi 500k; dùng số của Haseco
+Nam Đình Vũ,20.82135,106.81964,sua_tay,2000000,Owner (Phase 1-2 1.200k + Phase 3 800k),46,ha_nguon,"Haseco ghi mở rộng lên 1,75 triệu - hai số lệch nhau"
 Lạch Huyện HICT,20.79836,106.90554,osm,1100000,FPTS 08/2025 (bến 1-2),66,lach_huyen,Bến 1-2
-HTIT,20.78840,106.91150,osm,1100000,FPTS 08/2025 dẫn PHP (bến 3-4),66,lach_huyen,Bến 3-4; toạ độ dùng chung node "Bến cảng số 3456" của OSM
-HHIT,20.78600,106.91600,uoc_luong,2200000,"FPTS (LH tổng 4,4tr) và Hateco (2,2tr)",66,lach_huyen,Bến 5-6; khai thác chính thức 05/04/2025
+HTIT,20.79311,106.90783,google_maps,1100000,FPTS 08/2025 dẫn PHP (bến 3-4),66,lach_huyen,"Bến 3-4; toạ độ dùng chung node ""Bến cảng số 3456"" của OSM"
+HHIT,20.786,106.916,uoc_luong,2200000,"FPTS (LH tổng 4,4tr) và Hateco (2,2tr)",66,lach_huyen,Bến 5-6; khai thác chính thức 05/04/2025

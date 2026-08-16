@@ -174,11 +174,18 @@ function applyOverrides(points, overrides) {
   return applied;
 }
 
+// Dấu " bên trong một field phải nhân đôi thành "" theo chuẩn CSV (RFC 4180) -
+// thiếu bước này đã từng làm hỏng cấu trúc file khi ghi chú của HTIT có tên
+// node OSM đặt trong dấu ngoặc kép.
+function csvCell(value) {
+  return `"${String(value ?? "").replace(/"/g, '""')}"`;
+}
+
 function toCsv(points) {
   const cols = ["unit", "lat", "lon", "geo_source", "capacity_teu",
                 "capacity_source", "thc_usd", "zone", "note"];
-  return [cols.join(","), ...points.map((p) =>
-    cols.map((c) => `"${String(p[c] ?? "")}"`).join(","))].join("\n");
+  return [cols.map(csvCell).join(","), ...points.map((p) =>
+    cols.map((c) => csvCell(p[c])).join(","))].join("\n");
 }
 
 export async function initMap(root) {
