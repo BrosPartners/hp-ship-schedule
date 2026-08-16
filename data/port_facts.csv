@@ -1,0 +1,22 @@
+unit,lat,lon,capacity_teu,thc_usd,zone,note
+Bạch Đằng,20.8600,106.6820,,,thuong_nguon,
+Hoàng Diệu,20.8556,106.6900,,,thuong_nguon,
+Cảng 128,20.8570,106.6960,,,thuong_nguon,
+Nam Hải,20.8560,106.7020,,,ha_nguon,
+Đoạn Xá,20.8540,106.7080,,,ha_nguon,
+Transvina,20.8530,106.7110,,,ha_nguon,Không có trong berth_map
+Chùa Vẽ,20.8517,106.7150,,42,ha_nguon,VPA gộp sản lượng chung với Tân Vũ
+TC 189,20.8500,106.7220,,,ha_nguon,Không có trong berth_map
+Hải An,20.8480,106.7350,,,ha_nguon,
+Green Port,20.8470,106.7420,,,ha_nguon,
+Tân Vũ,20.8430,106.7600,,42,ha_nguon,VPA gộp sản lượng chung với Chùa Vẽ
+VIP Green,20.8400,106.7680,,46,ha_nguon,
+PTSC Đình Vũ,20.8380,106.7740,,38,ha_nguon,
+Mipec,20.8340,106.7800,,,ha_nguon,Không có trong berth_map
+VIMC Đình Vũ,20.8320,106.7860,,,ha_nguon,
+Đình Vũ,20.8300,106.7920,,,ha_nguon,
+Nam Hải Đình Vũ,20.8270,106.7960,,,ha_nguon,
+Nam Đình Vũ,20.8200,106.8020,2000000,46,ha_nguon,Phase 1-2 1.200k + Phase 3 800k TEU/năm
+Lạch Huyện HICT,20.7960,106.8760,1100000,66,lach_huyen,Bến 1-2
+HTIT,20.7990,106.8820,1100000,66,lach_huyen,Bến 3-4
+HHIT,20.8020,106.8880,1100000,66,lach_huyen,Bến 5-6
