@@ -201,6 +201,7 @@ export async function initMap(root) {
 
   root.innerHTML = `
     <div class="pending" id="m-pending" hidden></div>
+    <div class="pending clash" id="m-clash" hidden></div>
     <div class="filters">
       <label>Tô màu theo<select id="m-metric">
         <option value="utilisation">% công suất</option>
@@ -276,7 +277,28 @@ export async function initMap(root) {
     renderPending(stored);
   }
 
+  // Hai cảng nằm chồng nhau gần như luôn là dấu hiệu dán nhầm link, nên báo
+  // thường trực chứ không chỉ báo ngay lúc dán - lỗi này từng lọt qua và đi
+  // thẳng vào repo.
+  function renderClashes() {
+    const box = document.getElementById("m-clash");
+    const groups = [];
+    for (const p of data.points) {
+      const hit = groups.find((g) =>
+        map.distance([g[0].lat, g[0].lon], [p.lat, p.lon]) < 50);
+      if (hit) hit.push(p); else groups.push([p]);
+    }
+    const dup = groups.filter((g) => g.length > 1);
+    box.hidden = !dup.length;
+    if (!dup.length) return;
+    box.innerHTML = `<b>⚠ ${dup.length} nhóm cảng đang nằm chồng nhau:</b> `
+      + dup.map((g) => g.map((p) => p.unit).join(" = ")).join("; ")
+      + `. Nếu đây không phải chủ ý thì nhiều khả năng đã dán nhầm link của`
+      + ` cùng một cảng cho nhiều dòng - chọn lại từng cảng rồi dán link riêng.`;
+  }
+
   function renderPending(stored = true) {
+    renderClashes();
     const units = Object.keys(overrides);
     pending.hidden = !units.length;
     if (!units.length) return;
@@ -289,6 +311,16 @@ export async function initMap(root) {
       trong repo để lưu vĩnh viễn.
       <button type="button" id="m-forget">Bỏ các sửa này</button>`;
     document.getElementById("m-forget").addEventListener("click", () => {
+      // Nút này xoá công sức chỉnh tay và không hoàn tác được, nên phải hỏi
+      // lại kèm đúng tên những cảng sắp mất.
+      const list = Object.keys(overrides).join(", ");
+      if (!confirm(`Bỏ toạ độ đã sửa của: ${list}?
+
+`
+                 + `Các cảng này sẽ quay về toạ độ trong repo. `
+                 + `Không hoàn tác được - nếu chưa tải CSV thì nên tải trước.`)) {
+        return;
+      }
       for (const unit of Object.keys(overrides)) delete overrides[unit];
       saveOverrides(overrides);
       renderPending();
@@ -391,8 +423,10 @@ export async function initMap(root) {
   document.getElementById("m-geo-close")
     .addEventListener("click", () => { panel.hidden = true; });
 
+  const linkInput = document.getElementById("m-geo-link");
+
   function applyLink() {
-    const link = document.getElementById("m-geo-link").value;
+    const link = linkInput.value;
     const point = data.points[+document.getElementById("m-geo-unit").value];
     const hit = parseMapsLink(link);
     openBtn.hidden = !hit.openable;
@@ -410,10 +444,22 @@ export async function initMap(root) {
     remember(point);
     draw();
     map.setView([hit.lat, hit.lon], Math.max(map.getZoom(), 14));
-    msg.className = "geo-msg ok";
+
+    // Xoá ô link ngay sau khi áp. Giữ lại link cũ là cách một cảng khác bị
+    // gán nhầm đúng toạ độ của cảng trước: đổi cảng rồi bấm "Lấy toạ độ" lần
+    // nữa mà quên dán link mới thì link cũ vẫn còn nguyên và được áp lại.
+    linkInput.value = "";
+    linkInput.focus();
+
+    const clash = data.points.filter((p) => p !== point
+      && map.distance([p.lat, p.lon], [hit.lat, hit.lon]) < 50);
+    msg.className = clash.length ? "geo-msg warn" : "geo-msg ok";
     msg.textContent = `${point.unit}: ${hit.lat}, ${hit.lon}`
-      + ` (dời ${moved.toLocaleString("vi-VN")} m). `
-      + `Bấm "Tải CSV toạ độ" để lưu lại.`;
+      + ` (dời ${moved.toLocaleString("vi-VN")} m).`
+      + (clash.length
+         ? ` ⚠ Trùng chỗ với ${clash.map((p) => p.unit).join(", ")}`
+           + ` - kiểm tra lại xem có dán nhầm link của cảng khác không.`
+         : ` Bấm "Tải CSV toạ độ" để lưu lại.`);
   }
 
   document.getElementById("m-geo-apply").addEventListener("click", applyLink);
@@ -434,5 +480,6 @@ export async function initMap(root) {
 
   renderPending();
   draw();
+  renderClashes();
   map.fitBounds(data.points.map((p) => [p.lat, p.lon]), { padding: [40, 40] });
 }

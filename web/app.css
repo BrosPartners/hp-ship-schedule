@@ -52,6 +52,8 @@ table.grid td { padding: 5px 8px; border-top: 1px solid var(--line);
            border: 1px solid #e0b84a; background: #fdf6e0; font-size: 13px;
            line-height: 1.5; }
 .pending button { margin-left: 8px; }
+.pending.clash { border-color: #c0392b; background: #fdecea; }
+.geo-msg.warn { color: #a3231a; font-weight: 600; }
 /* Bảng dán link Google Maps */
 .geo-panel { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: flex-end;
              padding: 10px 12px; margin-bottom: 10px; border: 1px solid var(--line);
