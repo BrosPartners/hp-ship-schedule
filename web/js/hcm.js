@@ -11,10 +11,9 @@ const AGG = "data/hcm/agg";
 const CHARTS = [
   ["h1", "1. Lượt di chuyển & tổng DWT theo tháng"],
   ["h2", "2. Thị phần theo cụm cảng"],
-  ["h3", "3. Cỡ tàu bình quân theo tháng"],
-  ["h4", "4. Dịch chuyển theo khu vực"],
-  ["h5", "5. Lượt tàu / tổng DWT theo từng cụm, theo tháng"],
-  ...teuCharts("ht", 6),
+  ["h4", "3. Dịch chuyển theo khu vực"],
+  ["h5", "4. Lượt tàu / tổng DWT theo từng cụm, theo tháng"],
+  ...teuCharts("ht", 5),
 ];
 
 const ZONE_LABELS = {
@@ -40,10 +39,10 @@ function zoneToggles(prefix) {
 export async function initHcm(root) {
   root.innerHTML = `<p>Đang tải số liệu tổng hợp TP.HCM…</p>`;
   const echarts = await import(ECHARTS);
-  const [volume, cluster, size, coverage, teu, zoneShare] = await Promise.all([
+  const [volume, cluster, coverage, teu, zoneShare] = await Promise.all([
     loadJSONFrom(AGG, "monthly_volume"), loadJSONFrom(AGG, "cluster_share"),
-    loadJSONFrom(AGG, "vessel_size"), loadJSONFrom(AGG, "coverage"),
-    loadJSONFrom(AGG, "teu"), loadJSONFrom(AGG, "zone_share"),
+    loadJSONFrom(AGG, "coverage"), loadJSONFrom(AGG, "teu"),
+    loadJSONFrom(AGG, "zone_share"),
   ]);
   const zoneOf = new Map(cluster.rows.map((r) => [r.cluster, r.zone]));
 
@@ -60,7 +59,16 @@ export async function initHcm(root) {
         <span><button data-png="${id}">Tải PNG</button>
               <button data-csv="${id}">Tải data</button></span>
       </div>
-      ${id === "h1" ? zoneToggles("h1") : ""}
+      ${id === "h1" ? `
+      <div class="filters" id="h1-controls">
+        <span class="quick">Chọn nhanh:
+          ${ZONE_ORDER.filter((z) => z !== "chua_xep").map((z) =>
+            `<button type="button" data-h1-zone="${z}">${ZONE_LABELS[z].split(" (")[0]}</button>`).join("")}
+          <button type="button" id="h1-all">Chọn tất cả</button>
+          <button type="button" id="h1-none">Ẩn tất cả</button>
+        </span>
+      </div>
+      <div class="filters berth-picker" id="h1-clusters"></div>` : ""}
       ${id === "h2" ? zoneToggles("h2") : ""}
       ${id === "h4" ? zoneToggles("h4") : ""}
       ${id === "h5" ? `
@@ -126,12 +134,12 @@ export async function initHcm(root) {
   function draw() {
     const metric = document.getElementById("h-metric").value;
 
-    // Chart 1 - tổng theo tháng, cộng từ zone_share thay vì monthly_volume để
-    // lọc được theo khu. Hai nguồn lệch nhau đúng phần bị mốc phủ dữ liệu loại
-    // ra (xem source_coverage.csv), và phần đó thì không nên vẽ.
-    const zones1 = [...root.querySelectorAll(".h1-zone:checked")]
-      .map((cb) => cb.value);
-    const rows1 = zoneShare.rows.filter((r) => zones1.includes(r.zone));
+    // Chart 1 - tổng theo tháng, cộng từ cluster_share thay vì monthly_volume
+    // để lọc được tới từng cụm. Hai nguồn lệch nhau đúng phần bị mốc phủ dữ
+    // liệu loại ra (xem source_coverage.csv), và phần đó thì không nên vẽ.
+    const picked1 = new Set([...root.querySelectorAll(".h1-cluster:checked")]
+      .map((cb) => cb.value));
+    const rows1 = cluster.rows.filter((r) => picked1.has(r.cluster));
     const byMonth1 = {};
     for (const r of rows1) byMonth1[r.month] = (byMonth1[r.month] ?? 0) + r[metric];
     csvData.h1 = rows1;
@@ -168,29 +176,6 @@ export async function initHcm(root) {
         }),
       })),
     }, true); // notMerge: số cụm đổi theo bộ lọc khu
-
-    // Chart 3 - average vessel size by month
-    csvData.h3 = size.monthly;
-    chart("h3").setOption({
-      tooltip: { trigger: "axis" }, legend: {}, grid: { left: 70, right: 20 },
-      xAxis: { type: "category", data: size.monthly.map((r) => r.month) },
-      grid: { left: 80, right: 120 },
-      // Ba đại lượng ba thang khác nhau (DWT ~18.000, LOA ~114, mớn ~6). Mớn
-      // nước có trục riêng cố định 0-20 m để đọc được thay đổi vài tấc; LOA
-      // tách sang trục thứ ba thay vì dùng chung, vì 114 m sẽ bị trục 0-20 cắt.
-      yAxis: [{ type: "value", name: "DWT bình quân" },
-              { type: "value", name: "Mớn nước (m)", position: "right",
-                min: 0, max: 20 },
-              { type: "value", name: "LOA (m)", position: "right", offset: 58 }],
-      series: [
-        { name: "DWT bình quân", type: "line",
-          data: size.monthly.map((r) => r.dwt_avg) },
-        { name: "LOA bình quân (m)", type: "line", yAxisIndex: 2,
-          data: size.monthly.map((r) => r.loa_avg) },
-        { name: "Mớn nước bình quân (m)", type: "line", yAxisIndex: 1,
-          data: size.monthly.map((r) => r.draft_avg) },
-      ],
-    }, true);
 
     // Chart 4 - thị phần theo khu, đối xứng với chart 7 của Hải Phòng
     const zones4 = [...root.querySelectorAll(".h4-zone:checked")]
@@ -290,7 +275,7 @@ export async function initHcm(root) {
   document.getElementById("h5-metric").addEventListener("change", draw);
 
   // Bộ lọc khu của chart 2 và 4 dùng chung một cách nối sự kiện.
-  for (const n of ["h1", "h2", "h4"]) {
+  for (const n of ["h2", "h4"]) {
     const boxes = () => [...root.querySelectorAll(`.${n}-zone`)];
     boxes().forEach((cb) => cb.addEventListener("change", draw));
     const setAll = (checked) => {
@@ -302,6 +287,27 @@ export async function initHcm(root) {
     document.getElementById(`${n}-none`)
       .addEventListener("click", () => setAll(false));
   }
+
+  // Chart 1 dùng lại đúng danh sách cụm của chart 5, chỉ khác tiền tố lớp.
+  document.getElementById("h1-clusters").innerHTML =
+    document.getElementById("h5-clusters").innerHTML
+      .replaceAll('class="h5-cluster"', 'class="h1-cluster"');
+
+  const h1Boxes = () => [...root.querySelectorAll(".h1-cluster")];
+  h1Boxes().forEach((cb) => cb.addEventListener("change", draw));
+  document.getElementById("h1-all").addEventListener("click", () => {
+    h1Boxes().forEach((cb) => { cb.checked = true; }); draw();
+  });
+  document.getElementById("h1-none").addEventListener("click", () => {
+    h1Boxes().forEach((cb) => { cb.checked = false; }); draw();
+  });
+  root.querySelectorAll("[data-h1-zone]").forEach((btn) =>
+    btn.addEventListener("click", () => {
+      h1Boxes().forEach((cb) => {
+        cb.checked = zoneOf.get(cb.value) === btn.dataset.h1Zone;
+      });
+      draw();
+    }));
 
   const h5Boxes = () => [...root.querySelectorAll(".h5-cluster")];
   h5Boxes().forEach((cb) => cb.addEventListener("change", draw));

@@ -7,13 +7,11 @@ const ECHARTS =
 const CHARTS = [
   ["c1", "1. Lượt tàu & tổng DWT theo tháng (so YoY)"],
   ["c2", "2. Thị phần theo bến / doanh nghiệp"],
-  ["c3", "3. Cỡ tàu bình quân & phân bố mớn nước"],
-  ["c4", "4. Mix tuyến nội địa vs quốc tế"],
-  ["c5", "5. Lượt tàu theo ngày (heatmap)"],
-  ["c6", "6. Độ trượt kế hoạch"],
-  ["c7", "7. Dịch chuyển theo khu vực"],
-  ["c8", "8. Lượt tàu / tổng DWT theo từng cảng, theo tháng"],
-  ...teuCharts("t", 9),
+  ["c4", "3. Mix tuyến nội địa vs quốc tế"],
+  ["c5", "4. Lượt tàu theo ngày (heatmap)"],
+  ["c7", "5. Dịch chuyển theo khu vực"],
+  ["c8", "6. Lượt tàu / tổng DWT theo từng cảng, theo tháng"],
+  ...teuCharts("t", 7),
 ];
 
 const ZONE_LABELS = {
@@ -27,12 +25,10 @@ const ZONE_ORDER = ["thuong_nguon", "ha_nguon", "lach_huyen", "unmapped"];
 export async function initAnalysis(root) {
   root.innerHTML = `<p>Đang tải số liệu tổng hợp…</p>`;
   const echarts = await import(ECHARTS);
-  const [volume, share, size, mix, daily, slip, zoneShare, teu] =
-    await Promise.all([
-      loadJSON("monthly_volume"), loadJSON("berth_share"), loadJSON("vessel_size"),
-      loadJSON("route_mix"), loadJSON("daily_heatmap"), loadJSON("plan_slippage"),
-      loadJSON("zone_share"), loadJSON("teu"),
-    ]);
+  const [volume, share, mix, daily, zoneShare, teu] = await Promise.all([
+    loadJSON("monthly_volume"), loadJSON("berth_share"), loadJSON("route_mix"),
+    loadJSON("daily_heatmap"), loadJSON("zone_share"), loadJSON("teu"),
+  ]);
 
   root.innerHTML = `
     <div class="filters">
@@ -48,6 +44,17 @@ export async function initAnalysis(root) {
         <span><button data-png="${id}">Tải PNG</button>
               <button data-csv="${id}">Tải data</button></span>
       </div>
+      ${id === "c1" ? `
+      <div class="filters" id="c1-controls">
+        <span class="quick">Chọn nhanh:
+          <button type="button" data-c1-zone="lach_huyen">Lạch Huyện</button>
+          <button type="button" data-c1-zone="ha_nguon">Đình Vũ</button>
+          <button type="button" data-c1-zone="thuong_nguon">Sông Cấm</button>
+          <button type="button" id="c1-all">Chọn tất cả</button>
+          <button type="button" id="c1-none">Ẩn tất cả</button>
+        </span>
+      </div>
+      <div class="filters berth-picker" id="c1-berths"></div>` : ""}
       ${id === "c2" ? `
       <div class="filters" id="c2-zone-filters">
         <label><input type="checkbox" class="c2-zone-toggle" value="lach_huyen" checked> Lạch Huyện</label>
@@ -110,10 +117,19 @@ export async function initAnalysis(root) {
     const metric = document.getElementById("a-metric").value;
     const ticker = tickerSel.value;
 
-    // Chart 1 - monthly totals, one series per calendar year for YoY reading
+    // Chart 1 - monthly totals, one series per calendar year for YoY reading.
+    // Cộng từ berth_share thay vì monthly_volume để lọc được theo bến; hai
+    // nguồn bằng nhau khi chọn hết vì cùng đi ra từ throughput_rows.
     const years = [...new Set(months.map((m) => m.slice(0, 4)))].sort();
-    const byMonth = Object.fromEntries(volume.rows.map((r) => [r.month, r]));
-    csvData.c1 = volume.rows;
+    const picked1 = new Set([...root.querySelectorAll(".c1-berth:checked")]
+      .map((cb) => cb.value));
+    const rows1 = share.rows.filter((r) => picked1.has(r.berth)
+      && (!ticker || r.ticker === ticker));
+    const byMonth = {};
+    for (const r of rows1) {
+      byMonth[r.month] = (byMonth[r.month] ?? 0) + r[metric];
+    }
+    csvData.c1 = rows1;
     chart("c1").setOption({
       tooltip: { trigger: "axis" }, legend: {}, grid: { left: 70, right: 20 },
       xAxis: { type: "category",
@@ -122,9 +138,9 @@ export async function initAnalysis(root) {
       series: years.map((y) => ({
         name: y, type: "line", smooth: true,
         data: Array.from({ length: 12 }, (_, i) =>
-          byMonth[`${y}-${String(i + 1).padStart(2, "0")}`]?.[metric] ?? null),
+          byMonth[`${y}-${String(i + 1).padStart(2, "0")}`] ?? null),
       })),
-    });
+    }, true);
 
     // Chart 2 - stacked share by berth
     // Zone filter behaves like chart 7's: the remaining berths renormalize to
@@ -155,34 +171,6 @@ export async function initAnalysis(root) {
       })),
     }, true); // notMerge: the berth count changes with the zone filter, so a
               // merge would leave the unselected zones' series on the chart.
-
-    // Chart 3 - average size line plus draft distribution bars
-    csvData.c3 = size.monthly;
-    const bands = [...new Set(size.draft_hist.map((r) => r.band))].sort();
-    chart("c3").setOption({
-      tooltip: { trigger: "axis" }, legend: {},
-      grid: [{ left: 70, right: 20, height: "40%" },
-             { left: 70, right: 20, top: "62%", height: "28%" }],
-      xAxis: [{ type: "category", data: size.monthly.map((r) => r.month) },
-              { type: "category", gridIndex: 1, data: bands }],
-      // Mớn nước (~6,7 m) từng nằm chung trục với DWT (~18.700) nên bị ép dẹp
-      // sát đáy, không đọc được gì. Cho nó trục riêng cố định 0-20 m: thang cố
-      // định để so được giữa các lần xem, và đủ rộng cho tàu sâu nhất.
-      yAxis: [{ type: "value", name: "DWT bình quân" },
-              { type: "value", gridIndex: 1, name: "Lượt" },
-              { type: "value", name: "Mớn nước (m)", position: "right",
-                min: 0, max: 20 }],
-      series: [
-        { name: "DWT bình quân", type: "line",
-          data: size.monthly.map((r) => r.dwt_avg) },
-        { name: "Mớn nước bình quân", type: "line", yAxisIndex: 2,
-          data: size.monthly.map((r) => r.draft_avg) },
-        { name: "Phân bố mớn nước", type: "bar", xAxisIndex: 1, yAxisIndex: 1,
-          data: bands.map((b) => size.draft_hist
-            .filter((r) => r.band === b)
-            .reduce((sum, r) => sum + r.calls, 0)) },
-      ],
-    });
 
     // Chart 4 - domestic vs international
     csvData.c4 = mix.rows;
@@ -219,24 +207,6 @@ export async function initAnalysis(root) {
     });
     document.getElementById("c5").style.height = `${80 + years.length * 130}px`;
     chart("c5").resize();
-
-    // Chart 6 - plan slippage, empty for the backfill period by construction
-    csvData.c6 = slip.rows;
-    chart("c6").setOption(slip.rows.length ? {
-      tooltip: { trigger: "axis" }, grid: { left: 70, right: 20 },
-      xAxis: { type: "category", data: slip.rows.map((r) => r.plan_date) },
-      yAxis: { type: "value", axisLabel: { formatter: "{value}%" } },
-      series: [{ name: "% đổi giờ/đổi bến", type: "bar",
-                 data: slip.rows.map((r) => r.pct_changed) }],
-    } : {
-      title: {
-        text: slip.note ?? "Chưa có dữ liệu nhiều snapshot",
-        subtext: "Chỉ tiêu này bắt đầu có số từ ngày bot chạy hằng ngày; "
-               + "toàn bộ giai đoạn backfill chỉ có một bản kế hoạch.",
-        left: "center", top: "middle", textStyle: { fontSize: 14 },
-        subtextStyle: { fontSize: 12 },
-      },
-    });
 
     // Chart 7 - zone share by month, 100% stacked area
     // Zone filter: when a subset of zones is checked, the series renormalize
@@ -393,6 +363,27 @@ export async function initAnalysis(root) {
       ${allBerths.filter((b) => berthZone.get(b) === z).map((b) =>
         `<label><input type="checkbox" class="c8-berth" value="${b}" checked> ${b}</label>`
       ).join("")}</span>`).join("");
+
+  // Chart 1 dùng lại đúng danh sách bến của chart 8, chỉ khác tiền tố lớp.
+  document.getElementById("c1-berths").innerHTML =
+    document.getElementById("c8-berths").innerHTML
+      .replaceAll('class="c8-berth"', 'class="c1-berth"');
+
+  const c1Berths = () => [...root.querySelectorAll(".c1-berth")];
+  c1Berths().forEach((cb) => cb.addEventListener("change", draw));
+  document.getElementById("c1-all").addEventListener("click", () => {
+    c1Berths().forEach((cb) => { cb.checked = true; }); draw();
+  });
+  document.getElementById("c1-none").addEventListener("click", () => {
+    c1Berths().forEach((cb) => { cb.checked = false; }); draw();
+  });
+  root.querySelectorAll("[data-c1-zone]").forEach((btn) =>
+    btn.addEventListener("click", () => {
+      c1Berths().forEach((cb) => {
+        cb.checked = berthZone.get(cb.value) === btn.dataset.c1Zone;
+      });
+      draw();
+    }));
 
   const c8Berths = () => [...root.querySelectorAll(".c8-berth")];
   c8Berths().forEach((cb) => cb.addEventListener("change", draw));
