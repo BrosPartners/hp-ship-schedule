@@ -23,10 +23,16 @@
     <button data-tab="map">Bản đồ</button>
   </nav>
 
+  <nav class="tabs subtabs" id="subtabs-hcm" hidden>
+    <button data-tab="hcm-lookup">Tra cứu</button>
+    <button data-tab="hcm">Phân tích</button>
+  </nav>
+
   <main>
     <section id="tab-lookup" hidden></section>
     <section id="tab-analysis"></section>
     <section id="tab-map" hidden></section>
+    <section id="tab-hcm-lookup" hidden></section>
     <section id="tab-hcm" hidden></section>
   </main>
 
@@ -35,13 +41,14 @@
     import { initFreshness } from "./js/quality.js";
     initFreshness(document.getElementById("freshness"));
 
-    // Hai cảng là hai dataset riêng, nên chúng là hai tab cấp một. Các tab con
-    // chỉ thuộc về Hải Phòng; TP.HCM hiện là một trang duy nhất nên không có
-    // thanh tab con - dựng một thanh chỉ có một mục sẽ là trang trí thừa.
+    // Hai cảng là hai dataset riêng, nên chúng là hai tab cấp một, mỗi cảng có
+    // thanh tab con riêng. Tab con của hai cảng không dùng chung id vì chúng
+    // đọc hai bộ Parquet khác schema.
     const PORTS = {
       hp: { title: "Lịch tàu cảng Hải Phòng",
             tabs: ["lookup", "analysis", "map"], initial: "analysis" },
-      hcm: { title: "Lịch tàu cảng TP.HCM", tabs: ["hcm"], initial: "hcm" },
+      hcm: { title: "Lịch tàu cảng TP.HCM",
+             tabs: ["hcm-lookup", "hcm"], initial: "hcm" },
     };
     const ALL_TABS = Object.values(PORTS).flatMap((p) => p.tabs);
     const loaded = new Set();
@@ -60,6 +67,8 @@
       if (name === "analysis") (await import("./js/analysis.js")).initAnalysis(root);
       if (name === "map") (await import("./js/map.js")).initMap(root);
       if (name === "hcm") (await import("./js/hcm.js")).initHcm(root);
+      if (name === "hcm-lookup")
+        (await import("./js/hcm-lookup.js")).initHcmLookup(root);
     }
 
     function showPort(port) {
@@ -68,6 +77,7 @@
         b.classList.toggle("active", b.dataset.port === port));
       document.getElementById("title").textContent = PORTS[port].title;
       document.getElementById("subtabs-hp").hidden = port !== "hp";
+      document.getElementById("subtabs-hcm").hidden = port !== "hcm";
       showTab(PORTS[port].initial);
     }
 

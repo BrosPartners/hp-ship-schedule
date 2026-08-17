@@ -172,10 +172,20 @@ def build_all(parquet_path, out_dir, today=None):
     })
 
     # Filter options for the UI
-    clusters = sorted({c for c in pd.concat([df["from_cluster"], df["to_cluster"]]).dropna()})
+    # Chỉ liệt kê cụm còn là bến thương mại. Cụm đã bị đánh `external` (Ba Son)
+    # vẫn còn giá trị `cluster` trong Parquet, nên nếu lấy thẳng cột cluster thì
+    # nó vẫn hiện trong ô lọc dù đã biến khỏi mọi chart.
+    clusters = sorted({
+        *df.loc[df["from_type"] == "berth", "from_cluster"].dropna(),
+        *df.loc[df["to_type"] == "berth", "to_cluster"].dropna(),
+    })
     sections = ["tau_vao", "tau_roi", "tau_di_chuyen"]
     written["filters"] = _write(out_dir, "filters", {
         "clusters": clusters,
+        # Tab tra cứu lọc theo khu, mà zone chỉ có ở tầng tổng hợp (không nằm
+        # trong Parquet), nên gửi kèm bảng tra cụm -> khu cho trình duyệt.
+        "cluster_zones": {c: zones[c] for c in clusters if c in zones},
+        "zones": sorted({zones[c] for c in clusters if c in zones}),
         "sections": sections,
         "date_min": df["plan_date"].min().strftime("%Y-%m-%d") if not df.empty else None,
         "date_max": df["plan_date"].max().strftime("%Y-%m-%d") if not df.empty else None,
