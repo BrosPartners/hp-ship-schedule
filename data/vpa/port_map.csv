@@ -25,11 +25,11 @@ TAN CANG - HIEP PHUOC,Tân Cảng Hiệp Phước,hcm,Tan Cang Hiep Phuoc
 CAI MEP - THI VAI,,ignore,
 TAN CANG - TCCT,,ignore,
 CMIT,CMIT,hcm,CMIT
-GEMALINK,Gemalink,hcm,Gemalink (Cai Mep)
-TAN CANG - TCIT,TCIT,hcm,TCIT cau cang 1;TCIT cau cang 2;TCIT cau cang 3
+GEMALINK,Gemalink,hcm,Gemalink
+TAN CANG - TCIT,TCIT,hcm,TCIT
 TAN CANG - TCTT,TCTT,hcm,
-SP-PSA,SP-PSA,hcm,SP-PSA cau cang 1;SP-PSA cau cang 2
-SSIT,SSIT,hcm,SSIT cau cang 1
+SP-PSA,SP-PSA,hcm,SP-PSA
+SSIT,SSIT,hcm,SSIT
 SITV,SITV,hcm,SITV
 MIEN BAC,,ignore,
 MIEN TRUNG,,ignore,

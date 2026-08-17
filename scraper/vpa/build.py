@@ -155,7 +155,7 @@ def build_all(map_path=None, workbook_dir=None, today=None):
     for dataset, parts, columns, prepare_fn, rows_fn, out_dir in (
         ("hp", ROOT / "data" / "parts", ("to_berth",), _prepare,
          throughput_rows, ROOT / "data" / "agg"),
-        ("hcm", ROOT / "data" / "hcm" / "parts", ("to_cluster", "to_berth"),
+        ("hcm", ROOT / "data" / "hcm" / "parts", ("to_cluster",),
          hcm_prepare, hcm_throughput_rows, ROOT / "data" / "hcm" / "agg"),
     ):
         subset = [r for r in matched if r["dataset"] == dataset]

@@ -9,20 +9,20 @@ CATLAI 4-5,Cat Lai 4-5,Cat Lai,,berth
 SP-ITC01,SP-ITC 01,SP-ITC,,berth
 SP-ITC02,SP-ITC 02,SP-ITC,,berth
 TCHP 01,Tan Cang Hiep Phuoc 01,Tan Cang Hiep Phuoc,,berth
-CẢNG QUỐC TẾ CAI MÉP (CMIT),CMIT,Cai Mep,,berth
-CAI MEP GEMADEPT-TERMINAL LINK,Gemalink (Cai Mep),Cai Mep,GMD,berth
-CẦU CẢNG SỐ 1 - TCIT,TCIT cau cang 1,Cai Mep,,berth
-CẦU CẢNG SỐ 2 - TCIT,TCIT cau cang 2,Cai Mep,,berth
-CẦU CẢNG SỐ 3 - TCIT,TCIT cau cang 3,Cai Mep,,berth
-CẦU CẢNG SỐ 1 - SP-PSA,SP-PSA cau cang 1,Cai Mep,,berth
-CẦU CẢNG SỐ 2 - SP-PSA,SP-PSA cau cang 2,Cai Mep,,berth
-CẦU CẢNG SỐ 1 - SSIT,SSIT cau cang 1,Cai Mep,,berth
-CẦU 2 - TỔNG HỢP CÁI MÉP,Tong hop Cai Mep cau 2,Cai Mep,,berth
-CẦU CẢNG TỔNG HỢP THỊ VẢI (ODA),Tong hop Thi Vai (ODA),Cai Mep,,berth
-CẦU CẢNG SỐ 1 - BARIA SERECE,Baria Serece cau cang 1,Cai Mep,,berth
-CẦU CẢNG SITV,SITV,Cai Mep,,berth
-CẦU CẢNG SỐ 1 - QT THỊ VẢI,QT Thi Vai cau cang 1,Cai Mep,,berth
-CẦU CẢNG SỐ 2 - QT THỊ VẢI,QT Thi Vai cau cang 2,Cai Mep,,berth
+CẢNG QUỐC TẾ CAI MÉP (CMIT),CMIT,CMIT,,berth
+CAI MEP GEMADEPT-TERMINAL LINK,Gemalink (Cai Mep),Gemalink,GMD,berth
+CẦU CẢNG SỐ 1 - TCIT,TCIT cau cang 1,TCIT,,berth
+CẦU CẢNG SỐ 2 - TCIT,TCIT cau cang 2,TCIT,,berth
+CẦU CẢNG SỐ 3 - TCIT,TCIT cau cang 3,TCIT,,berth
+CẦU CẢNG SỐ 1 - SP-PSA,SP-PSA cau cang 1,SP-PSA,,berth
+CẦU CẢNG SỐ 2 - SP-PSA,SP-PSA cau cang 2,SP-PSA,,berth
+CẦU CẢNG SỐ 1 - SSIT,SSIT cau cang 1,SSIT,,berth
+CẦU 2 - TỔNG HỢP CÁI MÉP,Tong hop Cai Mep cau 2,Tong hop Cai Mep,,berth
+CẦU CẢNG TỔNG HỢP THỊ VẢI (ODA),Tong hop Thi Vai (ODA),Tong hop Thi Vai,,berth
+CẦU CẢNG SỐ 1 - BARIA SERECE,Baria Serece cau cang 1,Baria Serece,,berth
+CẦU CẢNG SITV,SITV,SITV,,berth
+CẦU CẢNG SỐ 1 - QT THỊ VẢI,QT Thi Vai cau cang 1,QT Thi Vai,,berth
+CẦU CẢNG SỐ 2 - QT THỊ VẢI,QT Thi Vai cau cang 2,QT Thi Vai,,berth
 CẦU CẢNG SỐ 1 – QT LONG AN,QT Long An cau cang 1,Long An,,berth
 CẦU CẢNG SỐ 1 - QT LONG AN,QT Long An cau cang 1,Long An,,berth
 CẦU CẢNG SỐ 2 – QT LONG AN,QT Long An cau cang 2,Long An,,berth
@@ -54,7 +54,7 @@ CÀU CẢNG NHÔ,Cau cang nho (Vung Tau),Vung Tau,,berth
 CẦU CẢNG TCTT,TCTT,Vung Tau,,berth
 CẦU CẢNG KHU CÔNG NGHIỆP ĐÔNG XUYÊN,KCN Dong Xuyen cau cang,Dong Xuyen,,berth
 BẾN CẢNG XI MĂNG HẠ LONG - CẦU CẢNG SỐ 1,Xi mang Ha Long cau cang 1,Vung Tau,,berth
-XMTL 1,Xi mang Thi Vai 1,Cai Mep,,berth
+XMTL 1,Xi mang Thi Vai 1,Xi mang Thi Vai,,berth
 CẦU CẢNG SỐ 2 - BA SON,Ba Son cau cang 2,Ba Son,,berth
 BẾN CẢNG TKXD 102 MO RONG,TKXD 102 mo rong,Vung Tau,,berth
 CẦU CẢNG CỦA CTY TNHH HÀ LỘC,Ha Loc,Vung Tau,,berth

@@ -99,3 +99,38 @@ def test_no_partitions_is_an_error(tmp_path):
 
     with pytest.raises(SystemExit):
         run(str(empty), map_path, apply_changes=False)
+
+
+HCM_MAP = ("raw_name,berth,cluster,ticker,type\n"
+           "CANG A,Ben A,CMIT,,berth\n"
+           "CANG B,Ben B,Gemalink,GMD,berth\n")
+
+
+def test_hcm_dataset_remaps_the_cluster_column(tmp_path):
+    import pandas as pd
+
+    from scraper.hcm.store import SCHEMA_COLUMNS as HCM_COLUMNS
+
+    parts = tmp_path / "parts"
+    parts.mkdir()
+    df = pd.DataFrame([
+        {"plan_date": date(2026, 8, 1), "section": "tau_vao",
+         "from_position": "CANG A", "to_position": "CANG B",
+         "from_cluster": "Cai Mep", "to_cluster": "Cai Mep",
+         "row_key": "k1", "crawled_at": datetime(2026, 8, 1, 7, 0)},
+    ])
+    for col in HCM_COLUMNS:
+        if col not in df.columns:
+            df[col] = None
+    df[HCM_COLUMNS].to_parquet(parts / "ship_plan_2026-08.parquet", index=False)
+
+    map_path = tmp_path / "hcm_map.csv"
+    map_path.write_text(HCM_MAP, encoding="utf-8")
+
+    counts = run(str(parts), str(map_path), apply_changes=True, dataset="hcm")
+
+    out = pd.read_parquet(parts / "ship_plan_2026-08.parquet")
+    assert counts["to_cluster"] == 1
+    assert out["from_cluster"][0] == "CMIT" and out["to_cluster"][0] == "Gemalink"
+    # Cột riêng của Hải Phòng không được đụng tới ở dataset này.
+    assert "to_zone" not in out.columns
