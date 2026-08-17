@@ -16,6 +16,7 @@ from pathlib import Path
 import pandas as pd
 
 from scraper.aggregate import _prepare, _write, throughput_rows
+from scraper.coverage import apply_coverage, load_coverage
 from scraper.hcm.aggregate import _prepare as hcm_prepare
 from scraper.hcm.aggregate import throughput_rows as hcm_throughput_rows
 from scraper.store import load as load_partitions
@@ -152,14 +153,17 @@ def build_all(map_path=None, workbook_dir=None, today=None):
     matched = match(read_workbooks(books, derive_years=DERIVE_YEARS), port_map)
 
     written = {}
-    for dataset, parts, columns, prepare_fn, rows_fn, out_dir in (
+    for dataset, parts, columns, prepare_fn, rows_fn, out_dir, cov_path in (
         ("hp", ROOT / "data" / "parts", ("to_berth",), _prepare,
-         throughput_rows, ROOT / "data" / "agg"),
+         throughput_rows, ROOT / "data" / "agg", None),
         ("hcm", ROOT / "data" / "hcm" / "parts", ("to_cluster",),
-         hcm_prepare, hcm_throughput_rows, ROOT / "data" / "hcm" / "agg"),
+         hcm_prepare, hcm_throughput_rows, ROOT / "data" / "hcm" / "agg",
+         ROOT / "data" / "hcm" / "source_coverage.csv"),
     ):
         subset = [r for r in matched if r["dataset"] == dataset]
         volume = _volume_by_member(parts, columns, prepare_fn, rows_fn, today)
+        if cov_path is not None:
+            volume = apply_coverage(volume, load_coverage(cov_path))
         written[dataset] = _write(out_dir, "teu", _payload(subset, volume))
     return written
 

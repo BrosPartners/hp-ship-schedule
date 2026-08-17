@@ -50,6 +50,17 @@ export async function initHcm(root) {
       </p>` : ""}`).join("")}
     <h3>Ghi chú độ phủ dữ liệu</h3>
     <p>
+      <b>Khu Vũng Tàu - Cái Mép - Thị Vải chỉ có dữ liệu lịch tàu từ
+      01/08/2025.</b> Cảng vụ TP.HCM bắt đầu đăng khu vực này sau khi Bà Rịa -
+      Vũng Tàu sáp nhập vào TP.HCM; số dòng trong kế hoạch ngày nhảy từ ~120
+      lên ~210 đúng ngày đó. Các cụm thuộc khu này (Cái Mép, Phú Mỹ, Vũng Tàu,
+      Vietsovpetro...) vì vậy <b>không xuất hiện trước mốc trên</b> - đây là
+      thiếu dữ liệu, không phải sản lượng bằng 0. Sản lượng container (TEU) từ
+      VPA thì vẫn đủ từ 2023, nên chart TEU chạy dài hơn chart lượt tàu; tỷ lệ
+      TEU/lượt tàu chỉ tính từ 08/2025 cho khu này. Cát Lái, SP-ITC và Tân
+      Cảng Hiệp Phước không bị ảnh hưởng.
+    </p>
+    <p>
       <b>${coverage.unmapped_pct_all}%</b> tổng số lượt (và
       <b>${coverage.unmapped_pct_30d}%</b> trong 30 ngày gần nhất) có vị trí
       đi/đến chưa map được vào bến/cụm cảng nào, nên không nằm trong bất kỳ

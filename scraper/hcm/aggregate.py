@@ -15,6 +15,7 @@ from pathlib import Path
 import pandas as pd
 
 from scraper.store import latest_snapshot, load as load_partitions
+from scraper.coverage import load_coverage
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 DRAFT_BANDS = [(0, 5), (5, 7), (7, 9), (9, 11), (11, 100)]
@@ -114,10 +115,18 @@ def build_all(parquet_path, out_dir, today=None):
                  .groupby(["month", "cluster"])
                  .agg(calls=("row_key", "count"), dwt=("dwt", "sum"))
                  .reset_index())
+    # Nguồn TP.HCM chỉ đăng khu Vũng Tàu - Cái Mép từ 01/08/2025. Vài lượt lẻ
+    # trước đó không phải "thị phần gần 0" mà là chưa có dữ liệu; để nguyên sẽ
+    # vẽ ra một cú tăng trưởng bùng nổ không có thật.
+    coverage = load_coverage(ROOT / "data" / "hcm" / "source_coverage.csv")
+    if coverage:
+        starts = cshare["cluster"].map(coverage)
+        cshare = cshare[starts.isna() | (cshare["month"] >= starts)]
     written["cluster_share"] = _write(out_dir, "cluster_share", {
         "rows": [{"month": r.month, "cluster": r.cluster,
                   "calls": int(r.calls), "dwt": int(r.dwt or 0)}
-                 for r in cshare.itertuples()]
+                 for r in cshare.itertuples()],
+        "coverage": coverage,
     })
 
     # Chart 3 - average vessel size by month, plus draft distribution
