@@ -40,3 +40,26 @@ def test_empty_coverage_changes_nothing(coverage):
     volume = {("2023-01", "CMIT"): (1, 1.0)}
 
     assert apply_coverage(volume, {}) == volume
+
+
+ZONES_CSV = ("cluster,zone\n"
+             "CMIT,cai_mep\n"
+             "Cat Lai,song_sai_gon\n"
+             "Khong co zone,\n")
+
+
+def test_cluster_zones_skips_rows_without_a_zone(tmp_path):
+    from scraper.coverage import load_cluster_zones
+
+    path = tmp_path / "cluster_zones.csv"
+    path.write_text(ZONES_CSV, encoding="utf-8")
+
+    zones = load_cluster_zones(path)
+
+    assert zones == {"CMIT": "cai_mep", "Cat Lai": "song_sai_gon"}
+
+
+def test_cluster_zones_missing_file_is_empty(tmp_path):
+    from scraper.coverage import load_cluster_zones
+
+    assert load_cluster_zones(tmp_path / "khong-co.csv") == {}

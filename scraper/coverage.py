@@ -30,6 +30,16 @@ def load_coverage(path):
                 for row in csv.DictReader(fh) if row["cluster"].strip()}
 
 
+def load_cluster_zones(path):
+    """{tên cụm: zone}. Xem `data/hcm/cluster_zones_notes.md`."""
+    if not Path(path).exists():
+        return {}
+    with open(path, newline="", encoding="utf-8-sig") as fh:
+        return {row["cluster"].strip(): row["zone"].strip()
+                for row in csv.DictReader(fh)
+                if row["cluster"].strip() and row["zone"].strip()}
+
+
 def apply_coverage(volume, coverage):
     """Bỏ các khoá (tháng, cụm) nằm trước mốc nguồn bắt đầu đăng.
 

@@ -1,7 +1,6 @@
-// TP.HCM tab. Deliberately simpler than js/analysis.js (Hai Phong): three
-// charts instead of seven, no ticker/zone filtering, no plan-slippage
-// equivalent. The owner has not asked for feature parity between the two
-// ports, and a smaller honest tab beats a padded one.
+// TP.HCM tab. Cùng bộ lọc với tab Hải Phòng (lọc theo khu, chọn từng cụm,
+// chọn kỳ), nhưng chiều phân tích chính là `cluster` chứ không phải bến, và
+// không có chart độ trượt kế hoạch vì nguồn TP.HCM chỉ có một bản kế hoạch.
 import { loadJSONFrom } from "./data.js";
 import { initTeu, teuCharts, teuControlsHtml } from "./teu.js";
 
@@ -11,19 +10,42 @@ const AGG = "data/hcm/agg";
 
 const CHARTS = [
   ["h1", "1. Lượt di chuyển & tổng DWT theo tháng"],
-  ["h2", "2. Thị phần theo cụm cảng (cluster)"],
+  ["h2", "2. Thị phần theo cụm cảng"],
   ["h3", "3. Cỡ tàu bình quân theo tháng"],
-  ...teuCharts("ht", 4),
+  ["h4", "4. Dịch chuyển theo khu vực"],
+  ["h5", "5. Lượt tàu / tổng DWT theo từng cụm, theo tháng"],
+  ...teuCharts("ht", 6),
 ];
+
+const ZONE_LABELS = {
+  cai_mep: "Cái Mép - Thị Vải (nước sâu)",
+  song_sai_gon: "Sông Sài Gòn (Cát Lái, SP-ITC…)",
+  song_soai_rap: "Sông Soài Rạp (Long An)",
+  vung_tau: "Vũng Tàu (neo, phao dầu khí)",
+  chua_xep: "(chưa xếp khu)",
+};
+const ZONE_ORDER = ["song_sai_gon", "song_soai_rap", "cai_mep", "vung_tau",
+                    "chua_xep"];
+
+function zoneToggles(prefix) {
+  return `<div class="filters" id="${prefix}-zone-filters">
+    ${ZONE_ORDER.map((z) =>
+      `<label><input type="checkbox" class="${prefix}-zone" value="${z}" checked>
+       ${ZONE_LABELS[z]}</label>`).join("")}
+    <button type="button" id="${prefix}-all">Chọn tất cả</button>
+    <button type="button" id="${prefix}-none">Ẩn tất cả</button>
+  </div>`;
+}
 
 export async function initHcm(root) {
   root.innerHTML = `<p>Đang tải số liệu tổng hợp TP.HCM…</p>`;
   const echarts = await import(ECHARTS);
-  const [volume, cluster, size, coverage, teu] = await Promise.all([
+  const [volume, cluster, size, coverage, teu, zoneShare] = await Promise.all([
     loadJSONFrom(AGG, "monthly_volume"), loadJSONFrom(AGG, "cluster_share"),
     loadJSONFrom(AGG, "vessel_size"), loadJSONFrom(AGG, "coverage"),
-    loadJSONFrom(AGG, "teu"),
+    loadJSONFrom(AGG, "teu"), loadJSONFrom(AGG, "zone_share"),
   ]);
+  const zoneOf = new Map(cluster.rows.map((r) => [r.cluster, r.zone]));
 
   root.innerHTML = `
     <div class="filters">
@@ -38,15 +60,32 @@ export async function initHcm(root) {
         <span><button data-png="${id}">Tải PNG</button>
               <button data-csv="${id}">Tải data</button></span>
       </div>
+      ${id === "h2" ? zoneToggles("h2") : ""}
+      ${id === "h4" ? zoneToggles("h4") : ""}
+      ${id === "h5" ? `
+      <div class="filters" id="h5-controls">
+        <label>Chỉ tiêu<select id="h5-metric">
+          <option value="calls">Lượt tàu</option>
+          <option value="dwt">Tổng DWT</option>
+        </select></label>
+        <label>Kỳ<select id="h5-year"></select></label>
+        <span class="quick">
+          ${ZONE_ORDER.filter((z) => z !== "chua_xep").map((z) =>
+            `<button type="button" data-h5-zone="${z}">${ZONE_LABELS[z].split(" (")[0]}</button>`).join("")}
+          <button type="button" id="h5-all">Chọn tất cả</button>
+          <button type="button" id="h5-none">Ẩn tất cả</button>
+        </span>
+      </div>
+      <div class="filters berth-picker" id="h5-clusters"></div>` : ""}
       ${id === "ht-vol" ? teuControlsHtml("ht") : ""}
       <div class="chart" id="${id}"></div>
       ${id === "ht-dwt" ? `<p class="note">
         Nguồn: Hiệp hội Cảng biển Việt Nam (VPA). ${teu.derived_note}
-        Chỉ 4 cụm có số container đối chiếu được (Cát Lái, Cái Mép, SP-ITC,
-        Tân Cảng Hiệp Phước); Vũng Tàu, Phú Mỹ, Long An và các phao dầu khí
-        không có sản lượng container nên không xuất hiện ở đây. Cái Mép lấy
-        dòng tổng khu vực Cái Mép - Thị Vải của VPA vì cụm này gộp toàn bộ
-        TCIT/TCTT/CMIT/SSIT/Gemalink.
+        Chỉ những cụm có số container đối chiếu được mới xuất hiện ở đây
+        (Cát Lái, SP-ITC, Tân Cảng Hiệp Phước và từng terminal Cái Mép:
+        CMIT, Gemalink, TCIT, TCTT, SSIT, SP-PSA, SITV). Khu Vũng Tàu,
+        Long An và các phao dầu khí không có sản lượng container nên không
+        có mặt.
       </p>` : ""}`).join("")}
     <h3>Ghi chú độ phủ dữ liệu</h3>
     <p>
@@ -97,11 +136,15 @@ export async function initHcm(root) {
                  data: months.map((m) => volume.rows.find((r) => r.month === m)?.[metric] ?? 0) }],
     });
 
-    // Chart 2 - cluster share, 100% stacked area
-    const clusters = [...new Set(cluster.rows.map((r) => r.cluster))];
+    // Chart 2 - cluster share, 100% stacked area. Lọc theo khu rồi chuẩn hoá
+    // lại về 100% của phần đang chọn, giống chart 2/7 bên Hải Phòng.
+    const zones2 = [...root.querySelectorAll(".h2-zone:checked")]
+      .map((cb) => cb.value);
+    const rows2 = cluster.rows.filter((r) => zones2.includes(r.zone));
+    const clusters = [...new Set(rows2.map((r) => r.cluster))];
     const totals = {};
-    for (const r of cluster.rows) totals[r.month] = (totals[r.month] ?? 0) + r[metric];
-    csvData.h2 = cluster.rows;
+    for (const r of rows2) totals[r.month] = (totals[r.month] ?? 0) + r[metric];
+    csvData.h2 = rows2;
     chart("h2").setOption({
       tooltip: { trigger: "axis" }, legend: { type: "scroll" },
       grid: { left: 70, right: 20 },
@@ -111,12 +154,12 @@ export async function initHcm(root) {
         name: c, type: "line", stack: "s", areaStyle: {},
         emphasis: { focus: "series" },
         data: months.map((m) => {
-          const hit = cluster.rows.find((r) => r.month === m && r.cluster === c);
+          const hit = rows2.find((r) => r.month === m && r.cluster === c);
           const total = totals[m] ?? 0;
           return total ? +((100 * (hit?.[metric] ?? 0)) / total).toFixed(2) : 0;
         }),
       })),
-    });
+    }, true); // notMerge: số cụm đổi theo bộ lọc khu
 
     // Chart 3 - average vessel size by month
     csvData.h3 = size.monthly;
@@ -134,6 +177,59 @@ export async function initHcm(root) {
           data: size.monthly.map((r) => r.draft_avg) },
       ],
     });
+
+    // Chart 4 - thị phần theo khu, đối xứng với chart 7 của Hải Phòng
+    const zones4 = [...root.querySelectorAll(".h4-zone:checked")]
+      .map((cb) => cb.value);
+    const rows4 = zoneShare.rows.filter((r) => zones4.includes(r.zone));
+    const zTotals = {};
+    for (const r of rows4) zTotals[r.month] = (zTotals[r.month] ?? 0) + r[metric];
+    csvData.h4 = rows4;
+    chart("h4").setOption({
+      tooltip: { trigger: "axis" }, legend: {}, grid: { left: 70, right: 20 },
+      xAxis: { type: "category", data: months },
+      yAxis: { type: "value", axisLabel: { formatter: "{value}%" }, max: 100 },
+      series: ZONE_ORDER.filter((z) => zones4.includes(z)
+        && zoneShare.rows.some((r) => r.zone === z)).map((z) => ({
+        name: ZONE_LABELS[z] ?? z, type: "line", stack: "s", areaStyle: {},
+        emphasis: { focus: "series" },
+        data: months.map((m) => {
+          const hit = rows4.find((r) => r.month === m && r.zone === z);
+          const total = zTotals[m] ?? 0;
+          return total ? +((100 * (hit?.[metric] ?? 0)) / total).toFixed(2) : 0;
+        }),
+      })),
+    }, true);
+
+    // Chart 5 - số tuyệt đối từng cụm theo tháng, chọn cụm như chart 8 bên HP
+    const metric5 = document.getElementById("h5-metric").value;
+    const picked5 = new Set([...root.querySelectorAll(".h5-cluster:checked")]
+      .map((cb) => cb.value));
+    const year5 = document.getElementById("h5-year").value;
+    const rows5 = cluster.rows.filter((r) => picked5.has(r.cluster)
+      && (!year5 || r.month.startsWith(year5)));
+    const months5 = months.filter((m) => !year5 || m.startsWith(year5));
+    const tot5 = new Map();
+    for (const r of rows5) {
+      tot5.set(r.cluster, (tot5.get(r.cluster) ?? 0) + r[metric5]);
+    }
+    const shown5 = [...tot5.entries()].sort((a, b) => b[1] - a[1]).map(([c]) => c);
+    const cell5 = new Map(rows5.map((r) => [`${r.month}|${r.cluster}`, r[metric5]]));
+    csvData.h5 = rows5;
+    chart("h5").setOption({
+      tooltip: { trigger: "axis", order: "valueDesc" },
+      legend: { type: "scroll" }, grid: { left: 80, right: 20 },
+      xAxis: { type: "category", data: months5 },
+      yAxis: { type: "value",
+               name: metric5 === "calls" ? "Lượt tàu" : "Tổng DWT" },
+      series: shown5.map((c) => ({
+        name: c, type: "line", smooth: true, connectNulls: false,
+        showSymbol: months5.length <= 24, emphasis: { focus: "series" },
+        // Cụm chưa có dữ liệu tháng đó để null cho đứt đoạn, không điền 0:
+        // khu Vũng Tàu chỉ có số từ 08/2025 (xem ghi chú độ phủ).
+        data: months5.map((m) => cell5.get(`${m}|${c}`) ?? null),
+      })),
+    }, true);
 
     drawTeu();
   }
@@ -158,6 +254,55 @@ export async function initHcm(root) {
       const a = document.createElement("a");
       a.href = url; a.download = `${btn.dataset.csv}.csv`; a.click();
       URL.revokeObjectURL(url);
+    }));
+
+  // Danh sách cụm cho chart 5, nhóm theo khu để nút chọn nhanh và cách hiển
+  // thị khớp nhau.
+  const allClusters = [...new Set(cluster.rows.map((r) => r.cluster))]
+    .sort((a, b) => a.localeCompare(b, "vi"));
+  document.getElementById("h5-clusters").innerHTML = ZONE_ORDER
+    .filter((z) => allClusters.some((c) => zoneOf.get(c) === z))
+    .map((z) => `<span class="zone-group"><b>${ZONE_LABELS[z]}:</b>
+      ${allClusters.filter((c) => zoneOf.get(c) === z).map((c) =>
+        `<label><input type="checkbox" class="h5-cluster" value="${c}" checked> ${c}</label>`
+      ).join("")}</span>`).join("");
+
+  const yearSel = document.getElementById("h5-year");
+  yearSel.insertAdjacentHTML("beforeend", `<option value="">Toàn bộ</option>`);
+  for (const y of [...new Set(months.map((m) => m.slice(0, 4)))].sort().reverse()) {
+    yearSel.insertAdjacentHTML("beforeend", `<option value="${y}">${y}</option>`);
+  }
+  yearSel.addEventListener("change", draw);
+  document.getElementById("h5-metric").addEventListener("change", draw);
+
+  // Bộ lọc khu của chart 2 và 4 dùng chung một cách nối sự kiện.
+  for (const n of ["h2", "h4"]) {
+    const boxes = () => [...root.querySelectorAll(`.${n}-zone`)];
+    boxes().forEach((cb) => cb.addEventListener("change", draw));
+    const setAll = (checked) => {
+      boxes().forEach((cb) => { cb.checked = checked; });
+      draw();
+    };
+    document.getElementById(`${n}-all`)
+      .addEventListener("click", () => setAll(true));
+    document.getElementById(`${n}-none`)
+      .addEventListener("click", () => setAll(false));
+  }
+
+  const h5Boxes = () => [...root.querySelectorAll(".h5-cluster")];
+  h5Boxes().forEach((cb) => cb.addEventListener("change", draw));
+  document.getElementById("h5-all").addEventListener("click", () => {
+    h5Boxes().forEach((cb) => { cb.checked = true; }); draw();
+  });
+  document.getElementById("h5-none").addEventListener("click", () => {
+    h5Boxes().forEach((cb) => { cb.checked = false; }); draw();
+  });
+  root.querySelectorAll("[data-h5-zone]").forEach((btn) =>
+    btn.addEventListener("click", () => {
+      h5Boxes().forEach((cb) => {
+        cb.checked = zoneOf.get(cb.value) === btn.dataset.h5Zone;
+      });
+      draw();
     }));
 
   const drawTeu = initTeu({ root, echarts, teu, prefix: "ht", chart, csvData,

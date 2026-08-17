@@ -15,7 +15,7 @@ from pathlib import Path
 import pandas as pd
 
 from scraper.store import latest_snapshot, load as load_partitions
-from scraper.coverage import load_coverage
+from scraper.coverage import load_cluster_zones, load_coverage
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 DRAFT_BANDS = [(0, 5), (5, 7), (7, 9), (9, 11), (11, 100)]
@@ -122,11 +122,26 @@ def build_all(parquet_path, out_dir, today=None):
     if coverage:
         starts = cshare["cluster"].map(coverage)
         cshare = cshare[starts.isna() | (cshare["month"] >= starts)]
+    # Zone là hàm thuần của cluster nên tra ở đây thay vì ghi vào Parquet:
+    # sửa phân vùng chỉ cần chạy lại aggregate, không phải remap 44 partition.
+    zones = load_cluster_zones(ROOT / "data" / "hcm" / "cluster_zones.csv")
+    zone_of = cshare["cluster"].map(zones).fillna("chua_xep")
     written["cluster_share"] = _write(out_dir, "cluster_share", {
-        "rows": [{"month": r.month, "cluster": r.cluster,
+        "rows": [{"month": r.month, "cluster": r.cluster, "zone": z,
                   "calls": int(r.calls), "dwt": int(r.dwt or 0)}
-                 for r in cshare.itertuples()],
+                 for r, z in zip(cshare.itertuples(), zone_of)],
         "coverage": coverage,
+    })
+
+    # Chart zone - dịch chuyển giữa các khu, đối xứng với chart 7 của Hải Phòng
+    zshare = (cshare.assign(zone=zone_of.values)
+                    .groupby(["month", "zone"])
+                    .agg(calls=("calls", "sum"), dwt=("dwt", "sum"))
+                    .reset_index())
+    written["zone_share"] = _write(out_dir, "zone_share", {
+        "rows": [{"month": r.month, "zone": r.zone,
+                  "calls": int(r.calls), "dwt": int(r.dwt or 0)}
+                 for r in zshare.itertuples()]
     })
 
     # Chart 3 - average vessel size by month, plus draft distribution
