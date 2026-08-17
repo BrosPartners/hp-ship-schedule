@@ -15,6 +15,7 @@
   <nav class="tabs ports">
     <button data-port="hp" class="active">Hải Phòng</button>
     <button data-port="hcm">TP.HCM</button>
+    <button data-port="trade">Xuất nhập khẩu VN</button>
   </nav>
 
   <nav class="tabs subtabs" id="subtabs-hp">
@@ -36,6 +37,7 @@
     <section id="tab-hcm-lookup" hidden></section>
     <section id="tab-hcm" hidden></section>
     <section id="tab-hcm-map" hidden></section>
+    <section id="tab-trade" hidden></section>
   </main>
 
   <script type="module">
@@ -51,6 +53,10 @@
             tabs: ["lookup", "analysis", "map"], initial: "analysis" },
       hcm: { title: "Lịch tàu cảng TP.HCM",
              tabs: ["hcm-lookup", "hcm", "hcm-map"], initial: "hcm" },
+      // Không phải dữ liệu cảng nên không có thanh tab con - một trang duy
+      // nhất, giống cách tab TP.HCM ban đầu trước khi có Bản đồ/Tra cứu.
+      trade: { title: "Xuất nhập khẩu Việt Nam", tabs: ["trade"],
+              initial: "trade" },
     };
     const ALL_TABS = Object.values(PORTS).flatMap((p) => p.tabs);
     const loaded = new Set();
@@ -73,6 +79,7 @@
       if (name === "hcm") (await import("./js/hcm.js")).initHcm(root);
       if (name === "hcm-lookup")
         (await import("./js/hcm-lookup.js")).initHcmLookup(root);
+      if (name === "trade") (await import("./js/trade.js")).initTrade(root);
     }
 
     function showPort(port) {
@@ -82,6 +89,7 @@
       document.getElementById("title").textContent = PORTS[port].title;
       document.getElementById("subtabs-hp").hidden = port !== "hp";
       document.getElementById("subtabs-hcm").hidden = port !== "hcm";
+      document.getElementById("freshness").hidden = port === "trade";
       showTab(PORTS[port].initial);
     }
 

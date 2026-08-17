@@ -56,6 +56,14 @@ jobs:
           python -m scraper.map_data
           python -m scraper.map_data --dataset hcm
 
+      # Nguồn hải quan không có cron riêng - dò và tải PDF mới mỗi ngày ở đây
+      # luôn cho gọn; sync() chỉ tải file thực sự chưa có trong repo, còn
+      # hải quan chỉ công bố khoảng đầu tháng nên phần lớn các lần chạy sẽ
+      # không tải gì cả.
+      - name: Sync VN trade PDFs and rebuild
+        if: always()
+        run: python -m scraper.trade.build --sync
+
       - name: Fail the run if either crawl failed
         if: always()
         run: |

@@ -1,0 +1,72 @@
+﻿ten_hai_quan,nhom_xk,nhom_nk
+"Máy vi tính, sản phẩm điện tử và linh kiện",dien_tu,linh_kien_dien_tu
+Điện thoại các loại và linh kiện,dien_tu,linh_kien_dien_tu
+"Máy ảnh, máy quay phim và linh kiện",dien_tu,linh_kien_dien_tu
+Dây điện và dây cáp điện,dien_tu,che_bien_che_tao
+Hàng điện gia dụng và linh kiện,dien_tu,che_bien_che_tao
+"Máy móc, thiết bị, dụng cụ phụ tùng khác",che_bien_che_tao,che_bien_che_tao
+"Máy móc, thiết bị, dụng cụ, phụ tùng khác",che_bien_che_tao,che_bien_che_tao
+Phương tiện vận tải và phụ tùng,che_bien_che_tao,che_bien_che_tao
+Phương tiện vận tải khác và phụ tùng,che_bien_che_tao,che_bien_che_tao
+Sắt thép các loại,che_bien_che_tao,che_bien_che_tao
+Sản phẩm từ sắt thép,che_bien_che_tao,che_bien_che_tao
+Phế liệu sắt thép,che_bien_che_tao,che_bien_che_tao
+Kim loại thường khác,che_bien_che_tao,che_bien_che_tao
+Sản phẩm từ kim loại thường khác,che_bien_che_tao,che_bien_che_tao
+Hóa chất,che_bien_che_tao,che_bien_che_tao
+Sản phẩm hóa chất,che_bien_che_tao,che_bien_che_tao
+Chất dẻo nguyên liệu,che_bien_che_tao,che_bien_che_tao
+Sản phẩm từ chất dẻo,che_bien_che_tao,che_bien_che_tao
+Cao su,che_bien_che_tao,che_bien_che_tao
+Sản phẩm từ cao su,che_bien_che_tao,che_bien_che_tao
+Giấy và các sản phẩm từ giấy,che_bien_che_tao,che_bien_che_tao
+Giấy các loại,che_bien_che_tao,che_bien_che_tao
+Sản phẩm từ giấy,che_bien_che_tao,che_bien_che_tao
+Thủy tinh và các sản phẩm từ thủy tinh,che_bien_che_tao,che_bien_che_tao
+"Sản phẩm gốm, sứ",che_bien_che_tao,che_bien_che_tao
+"Đá quý, kim loại quý và sản phẩm",che_bien_che_tao,che_bien_che_tao
+"Đồ chơi, dụng cụ thể thao và bộ phận",che_bien_che_tao,che_bien_che_tao
+"Linh kiện, phụ tùng ô tô",che_bien_che_tao,che_bien_che_tao
+Ô tô nguyên chiếc các loại,che_bien_che_tao,che_bien_che_tao
+Dược phẩm,che_bien_che_tao,che_bien_che_tao
+Nguyên phụ liệu dược phẩm,che_bien_che_tao,che_bien_che_tao
+"Chất thơm, mỹ phẩm và chế phẩm vệ sinh",che_bien_che_tao,che_bien_che_tao
+Nguyên phụ liệu thuốc lá,che_bien_che_tao,che_bien_che_tao
+Thuốc trừ sâu và nguyên liệu,che_bien_che_tao,che_bien_che_tao
+Giày dép các loại,det_may_giay_dep,nguyen_lieu_det_may
+"Hàng dệt, may",det_may_giay_dep,nguyen_lieu_det_may
+"Vải mành, vải kỹ thuật khác",det_may_giay_dep,nguyen_lieu_det_may
+Vải các loại,det_may_giay_dep,nguyen_lieu_det_may
+"Xơ, sợi dệt các loại",det_may_giay_dep,nguyen_lieu_det_may
+Bông các loại,det_may_giay_dep,nguyen_lieu_det_may
+"Nguyên phụ liệu dệt, may, da, giày",det_may_giay_dep,nguyen_lieu_det_may
+"Túi xách, ví,vali, mũ, ô, dù",det_may_giay_dep,nguyen_lieu_det_may
+Cà phê,nong_nghiep,khac
+Chè,nong_nghiep,khac
+Hạt tiêu,nong_nghiep,khac
+Hạt điều,nong_nghiep,khac
+Gạo,nong_nghiep,khac
+Sắn và các sản phẩm từ sắn,nong_nghiep,khac
+Hàng rau quả,nong_nghiep,khac
+Hàng thủy sản,nong_nghiep,khac
+Bánh kẹo và các sản phẩm từ ngũ cốc,nong_nghiep,khac
+Thức ăn gia súc và nguyên liệu,nong_nghiep,khac
+"Sản phẩm mây, tre, cói và thảm",nong_nghiep,khac
+Ngô,khac,khac
+Lúa mì,khac,khac
+Đậu tương,khac,khac
+Sữa và sản phẩm sữa,khac,khac
+Dầu mỡ động thực vật,khac,khac
+Chế phẩm thực phẩm khác,khac,khac
+Gỗ và sản phẩm gỗ,go,khac
+Sản phẩm nội thất từ chất liệu khác gỗ,go,khac
+Dầu thô,khac,dau_tho
+Xăng dầu các loại,khac,dau_tho
+Khí đốt hóa lỏng,khac,dau_tho
+Sản phẩm khác từ dầu mỏ,khac,dau_tho
+Than các loại,khac,khac
+Clanhke và xi măng,khac,khac
+Quặng và khoáng sản khác,khac,khac
+Phân bón các loại,khac,khac
+Hàng hóa khác,khac,khac
+Kim loại thường khác và sản phẩm,che_bien_che_tao,che_bien_che_tao

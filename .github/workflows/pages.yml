@@ -43,6 +43,9 @@ jobs:
           # The VPA workbooks only feed the teu.json build; the browser never
           # reads them, so keep them out of the published site.
           rm -rf publish/data/vpa
+          # PDF nguồn của hải quan chỉ dùng để dựng lại data/trade/agg; trình
+          # duyệt không đọc, nên không đẩy lên Pages cho nhẹ site (~17 MB).
+          rm -rf publish/data/trade/pdf
 
       - uses: actions/configure-pages@v5
 
