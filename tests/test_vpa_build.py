@@ -82,3 +82,43 @@ def test_payload_lists_units_sorted(port_map):
     matched = match([_row("MIPEC"), _row("DINH VU")], port_map)
 
     assert _payload(matched, {})["units"] == ["Mipec", "Đình Vũ"]
+
+
+def test_members_can_name_either_a_cluster_or_a_berth(monkeypatch):
+    """Cái Mép cần cả hai cấp: cụm cho Cát Lái, bến cho từng terminal."""
+    import pandas as pd
+
+    from scraper.vpa import build as build_mod
+    from scraper.vpa.build import _volume_by_member
+
+    monkeypatch.setattr(build_mod, "load_partitions", lambda _: None)
+    thr = pd.DataFrame({
+        "month": ["2026-01"] * 3,
+        "to_cluster": ["Cat Lai", "Cai Mep", "Cai Mep"],
+        "to_berth": ["Cat Lai b1", "CMIT", "Gemalink (Cai Mep)"],
+        "row_key": ["a", "b", "c"],
+        "dwt": [10.0, 20.0, 30.0],
+    })
+    volume = _volume_by_member(None, ("to_cluster", "to_berth"),
+                               lambda _: thr, lambda d: d, None)
+
+    assert volume[("2026-01", "Cat Lai")] == (1, 10.0)     # tra theo cụm
+    assert volume[("2026-01", "CMIT")] == (1, 20.0)        # tra theo bến
+    assert volume[("2026-01", "Cai Mep")] == (2, 50.0)     # cụm vẫn cộng đủ
+
+
+def test_a_name_that_is_both_cluster_and_berth_raises(monkeypatch):
+    import pandas as pd
+
+    from scraper.vpa import build as build_mod
+    from scraper.vpa.build import MemberNameClashError, _volume_by_member
+
+    monkeypatch.setattr(build_mod, "load_partitions", lambda _: None)
+    thr = pd.DataFrame({
+        "month": ["2026-01"], "to_cluster": ["CMIT"], "to_berth": ["CMIT"],
+        "row_key": ["a"], "dwt": [1.0],
+    })
+
+    with pytest.raises(MemberNameClashError):
+        _volume_by_member(None, ("to_cluster", "to_berth"),
+                          lambda _: thr, lambda d: d, None)

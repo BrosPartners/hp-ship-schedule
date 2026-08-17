@@ -22,7 +22,15 @@ TRANSVINA,Transvina,hp,
 TAN CANG - CAT LAI,Cát Lái,hcm,Cat Lai
 SP-ITC,SP-ITC,hcm,SP-ITC
 TAN CANG - HIEP PHUOC,Tân Cảng Hiệp Phước,hcm,Tan Cang Hiep Phuoc
-CAI MEP - THI VAI,Cái Mép,hcm,Cai Mep
+CAI MEP - THI VAI,,ignore,
+TAN CANG - TCCT,,ignore,
+CMIT,CMIT,hcm,CMIT
+GEMALINK,Gemalink,hcm,Gemalink (Cai Mep)
+TAN CANG - TCIT,TCIT,hcm,TCIT cau cang 1;TCIT cau cang 2;TCIT cau cang 3
+TAN CANG - TCTT,TCTT,hcm,
+SP-PSA,SP-PSA,hcm,SP-PSA cau cang 1;SP-PSA cau cang 2
+SSIT,SSIT,hcm,SSIT cau cang 1
+SITV,SITV,hcm,SITV
 MIEN BAC,,ignore,
 MIEN TRUNG,,ignore,
 BAC TRUNG BO,,ignore,
@@ -49,14 +57,6 @@ SPCT,,ignore,
 LOTUS,,ignore,
 PHUOC LONG ICD,,ignore,
 ITC- CORP,,ignore,
-SP-PSA,,ignore,
-TAN CANG - TCIT,,ignore,
-TAN CANG - TCTT,,ignore,
-TAN CANG - TCCT,,ignore,
-CMIT,,ignore,
-SSIT,,ignore,
-SITV,,ignore,
-GEMALINK,,ignore,
 CAN THO,,ignore,
 CAN THO CAI CUI,,ignore,
 TAN CANG CAI CUI,,ignore,

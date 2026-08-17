@@ -20,6 +20,14 @@ nav.tabs button { border: 1px solid var(--line); background: none;
                   padding: 6px 14px; border-radius: 6px; cursor: pointer; }
 nav.tabs button.active { background: var(--accent); color: #fff;
                          border-color: var(--accent); }
+/* Cấp một là cảng, cấp hai là mục trong cảng đó - phân biệt bằng độ đậm và
+   nền, để không nhìn thành hai hàng nút ngang hàng nhau. */
+nav.tabs.ports { padding-bottom: 0; border-bottom: 0; }
+nav.tabs.ports button { font-weight: 600; font-size: 15px; padding: 8px 18px;
+                        border-bottom-left-radius: 0;
+                        border-bottom-right-radius: 0; }
+nav.tabs.subtabs { background: #eef4f7; }
+nav.tabs.subtabs button { font-size: 13px; padding: 5px 12px; }
 main { padding: 16px 20px 48px; }
 .filters { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end;
            margin-bottom: 12px; }

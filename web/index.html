@@ -3,29 +3,31 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Lịch tàu cảng Hải Phòng</title>
+  <title>Lịch tàu cảng biển</title>
   <link rel="stylesheet" href="./app.css" />
 </head>
 <body>
   <header>
-    <h1>Lịch tàu cảng Hải Phòng</h1>
+    <h1 id="title">Lịch tàu cảng Hải Phòng</h1>
     <div id="freshness" class="badge">đang tải…</div>
   </header>
 
-  <nav class="tabs">
+  <nav class="tabs ports">
+    <button data-port="hp" class="active">Hải Phòng</button>
+    <button data-port="hcm">TP.HCM</button>
+  </nav>
+
+  <nav class="tabs subtabs" id="subtabs-hp">
     <button data-tab="lookup">Tra cứu</button>
     <button data-tab="analysis" class="active">Phân tích</button>
-    <button data-tab="quality">Chất lượng dữ liệu</button>
-    <button data-tab="hcm">TP.HCM</button>
     <button data-tab="map">Bản đồ</button>
   </nav>
 
   <main>
     <section id="tab-lookup" hidden></section>
     <section id="tab-analysis"></section>
-    <section id="tab-quality" hidden></section>
-    <section id="tab-hcm" hidden></section>
     <section id="tab-map" hidden></section>
+    <section id="tab-hcm" hidden></section>
   </main>
 
   <script type="module">
@@ -33,11 +35,22 @@
     import { initFreshness } from "./js/quality.js";
     initFreshness(document.getElementById("freshness"));
 
+    // Hai cảng là hai dataset riêng, nên chúng là hai tab cấp một. Các tab con
+    // chỉ thuộc về Hải Phòng; TP.HCM hiện là một trang duy nhất nên không có
+    // thanh tab con - dựng một thanh chỉ có một mục sẽ là trang trí thừa.
+    const PORTS = {
+      hp: { title: "Lịch tàu cảng Hải Phòng",
+            tabs: ["lookup", "analysis", "map"], initial: "analysis" },
+      hcm: { title: "Lịch tàu cảng TP.HCM", tabs: ["hcm"], initial: "hcm" },
+    };
+    const ALL_TABS = Object.values(PORTS).flatMap((p) => p.tabs);
     const loaded = new Set();
-    async function show(name) {
-      document.querySelectorAll("nav.tabs button").forEach((b) =>
+    let currentPort = "hp";
+
+    async function showTab(name) {
+      document.querySelectorAll("nav.subtabs button").forEach((b) =>
         b.classList.toggle("active", b.dataset.tab === name));
-      for (const key of ["lookup", "analysis", "quality", "hcm", "map"]) {
+      for (const key of ALL_TABS) {
         document.getElementById(`tab-${key}`).hidden = key !== name;
       }
       if (loaded.has(name)) return;
@@ -45,14 +58,24 @@
       const root = document.getElementById(`tab-${name}`);
       if (name === "lookup") initLookup(root);
       if (name === "analysis") (await import("./js/analysis.js")).initAnalysis(root);
-      if (name === "quality") (await import("./js/quality.js")).initQuality(root);
-      if (name === "hcm") (await import("./js/hcm.js")).initHcm(root);
       if (name === "map") (await import("./js/map.js")).initMap(root);
+      if (name === "hcm") (await import("./js/hcm.js")).initHcm(root);
     }
 
-    document.querySelectorAll("nav.tabs button").forEach((b) =>
-      b.addEventListener("click", () => show(b.dataset.tab)));
-    show("analysis");
+    function showPort(port) {
+      currentPort = port;
+      document.querySelectorAll("nav.ports button").forEach((b) =>
+        b.classList.toggle("active", b.dataset.port === port));
+      document.getElementById("title").textContent = PORTS[port].title;
+      document.getElementById("subtabs-hp").hidden = port !== "hp";
+      showTab(PORTS[port].initial);
+    }
+
+    document.querySelectorAll("nav.ports button").forEach((b) =>
+      b.addEventListener("click", () => showPort(b.dataset.port)));
+    document.querySelectorAll("nav.subtabs button").forEach((b) =>
+      b.addEventListener("click", () => showTab(b.dataset.tab)));
+    showPort("hp");
   </script>
 </body>
 </html>

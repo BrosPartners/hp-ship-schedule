@@ -72,8 +72,17 @@ def match(rows, port_map):
     return out
 
 
-def _volume_by_member(parts_dir, column, prepare_fn, rows_fn, cutoff):
+class MemberNameClashError(Exception):
+    """Một tên vừa là cụm vừa là bến - không biết `members` đang trỏ vào đâu."""
+
+
+def _volume_by_member(parts_dir, columns, prepare_fn, rows_fn, cutoff):
     """{(month, member): (calls, dwt)} từ đúng nguồn nuôi các chart cũ.
+
+    `columns` là các cấp có thể dùng làm `members` trong port_map.csv. TP.HCM
+    cần cả hai cấp: phần lớn đơn vị VPA khớp với một cụm (`to_cluster`), riêng
+    các terminal trong Cái Mép thì VPA công bố lẻ từng cái nên phải cộng theo
+    từng bến (`to_berth`).
 
     Mỗi dataset có `_prepare` riêng vì schema khác nhau (bảng TP.HCM không có
     cột `gt`), nên hàm chuẩn bị được truyền vào thay vì gọi cứng.
@@ -82,11 +91,21 @@ def _volume_by_member(parts_dir, column, prepare_fn, rows_fn, cutoff):
     if cutoff is not None:
         df = df[df["plan_date"] <= pd.Timestamp(cutoff)]
     thr = rows_fn(df)
-    grouped = (thr.dropna(subset=[column])
-                  .groupby(["month", column])
-                  .agg(calls=("row_key", "count"), dwt=("dwt", "sum")))
-    return {(m, k): (int(v.calls), float(v.dwt or 0))
-            for (m, k), v in grouped.iterrows()}
+
+    out, seen = {}, {}
+    for column in columns:
+        grouped = (thr.dropna(subset=[column])
+                      .groupby(["month", column])
+                      .agg(calls=("row_key", "count"), dwt=("dwt", "sum")))
+        for (month, key), v in grouped.iterrows():
+            # Gộp hai cấp vào một từ điển chỉ an toàn khi tên không đụng nhau;
+            # nếu đụng thì `members` trở nên nhập nhằng và số sẽ sai âm thầm.
+            if seen.setdefault(key, column) != column:
+                raise MemberNameClashError(
+                    f"{key!r} vừa là {seen[key]} vừa là {column} - "
+                    "đổi tên một bên trước khi dùng làm members")
+            out[(month, key)] = (int(v.calls), float(v.dwt or 0))
+    return out
 
 
 def _payload(matched, volume):
@@ -133,14 +152,14 @@ def build_all(map_path=None, workbook_dir=None, today=None):
     matched = match(read_workbooks(books, derive_years=DERIVE_YEARS), port_map)
 
     written = {}
-    for dataset, parts, column, prepare_fn, rows_fn, out_dir in (
-        ("hp", ROOT / "data" / "parts", "to_berth", _prepare,
+    for dataset, parts, columns, prepare_fn, rows_fn, out_dir in (
+        ("hp", ROOT / "data" / "parts", ("to_berth",), _prepare,
          throughput_rows, ROOT / "data" / "agg"),
-        ("hcm", ROOT / "data" / "hcm" / "parts", "to_cluster", hcm_prepare,
-         hcm_throughput_rows, ROOT / "data" / "hcm" / "agg"),
+        ("hcm", ROOT / "data" / "hcm" / "parts", ("to_cluster", "to_berth"),
+         hcm_prepare, hcm_throughput_rows, ROOT / "data" / "hcm" / "agg"),
     ):
         subset = [r for r in matched if r["dataset"] == dataset]
-        volume = _volume_by_member(parts, column, prepare_fn, rows_fn, today)
+        volume = _volume_by_member(parts, columns, prepare_fn, rows_fn, today)
         written[dataset] = _write(out_dir, "teu", _payload(subset, volume))
     return written
 
