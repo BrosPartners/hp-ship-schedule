@@ -22,6 +22,17 @@ from scraper.aggregate import _write
 ROOT = Path(__file__).resolve().parent.parent
 WINDOW = 12  # số tháng gộp cho "12 tháng gần nhất"
 
+# Hai cảng khác nhau ở chỗ lượt tàu được gộp theo cấp nào: Hải Phòng theo
+# `berth` (khớp tên đơn vị VPA), TP.HCM theo `cluster`.
+DATASETS = {
+    "hp": {"agg": ROOT / "data" / "agg",
+           "facts": ROOT / "data" / "port_facts.csv",
+           "volume_file": "berth_share", "volume_key": "berth"},
+    "hcm": {"agg": ROOT / "data" / "hcm" / "agg",
+            "facts": ROOT / "data" / "hcm" / "port_facts.csv",
+            "volume_file": "cluster_share", "volume_key": "cluster"},
+}
+
 
 def _num(value):
     text = (value or "").strip()
@@ -33,6 +44,12 @@ def _num(value):
 def load_facts(path):
     with open(path, newline="", encoding="utf-8-sig") as fh:
         return [{"unit": row["unit"].strip(),
+                 # Tên đơn vị VPA (dùng tra TEU) và tên cụm/bến trong dữ liệu
+                 # tàu (dùng tra lượt tàu) không phải lúc nào cũng trùng: VPA
+                 # ghi "Cát Lái" còn bản đồ bến ghi "Cat Lai". Để trống nghĩa
+                 # là hai bên trùng nhau.
+                 "volume_key": (row.get("volume_key") or "").strip()
+                                or row["unit"].strip(),
                  "lat": _num(row["lat"]), "lon": _num(row["lon"]),
                  "geo_source": (row.get("geo_source") or "").strip() or None,
                  "capacity_teu": _num(row["capacity_teu"]),
@@ -59,18 +76,18 @@ def teu_by_unit(teu):
     return out, sorted(months)
 
 
-def calls_by_berth(share):
+def calls_by_berth(share, key="berth"):
     months = _window({r["month"] for r in share["rows"]})
     out = {}
     for r in share["rows"]:
         if r["month"] in months:
-            cur = out.setdefault(r["berth"], {"calls": 0, "dwt": 0})
+            cur = out.setdefault(r[key], {"calls": 0, "dwt": 0})
             cur["calls"] += r["calls"]
             cur["dwt"] += r["dwt"]
     return out
 
 
-def build(facts, teu, share):
+def build(facts, teu, share, volume_key="berth"):
     """Một điểm cho mỗi dòng port_facts có toạ độ.
 
     Ghép TEU theo tên đơn vị VPA, còn lượt tàu theo tên bến. Hai bên trùng tên
@@ -79,14 +96,14 @@ def build(facts, teu, share):
     diện nói rõ, thay vì để người đọc tưởng Tân Vũ không có sản lượng.
     """
     teu_map, months = teu_by_unit(teu)
-    call_map = calls_by_berth(share)
+    call_map = calls_by_berth(share, volume_key)
 
     points = []
     for f in facts:
         if f["lat"] is None or f["lon"] is None:
             continue
         hit = teu_map.get(f["unit"])
-        vol = call_map.get(f["unit"])
+        vol = call_map.get(f["volume_key"])
         teu_12m = round(hit["teu"]) if hit else None
         capacity = f["capacity_teu"]
         points.append({
@@ -122,20 +139,25 @@ def build(facts, teu, share):
     return {"months": months, "window": WINDOW, "points": points}
 
 
-def build_all(out_dir=None, facts_path=None, agg_dir=None):
-    agg_dir = Path(agg_dir or ROOT / "data" / "agg")
-    facts = load_facts(facts_path or ROOT / "data" / "port_facts.csv")
+def build_all(out_dir=None, facts_path=None, agg_dir=None, dataset="hp"):
+    spec = DATASETS[dataset]
+    agg_dir = Path(agg_dir or spec["agg"])
+    facts = load_facts(facts_path or spec["facts"])
     teu = json.loads((agg_dir / "teu.json").read_text(encoding="utf-8"))
-    share = json.loads((agg_dir / "berth_share.json").read_text(encoding="utf-8"))
-    return _write(out_dir or agg_dir, "map_ports", build(facts, teu, share))
+    share = json.loads(
+        (agg_dir / f"{spec['volume_file']}.json").read_text(encoding="utf-8"))
+    return _write(out_dir or agg_dir, "map_ports",
+                  build(facts, teu, share, spec["volume_key"]))
 
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--dataset", choices=sorted(DATASETS), default="hp")
     ap.add_argument("--facts")
     ap.add_argument("--agg")
     args = ap.parse_args(argv)
-    print(build_all(facts_path=args.facts, agg_dir=args.agg))
+    print(build_all(facts_path=args.facts, agg_dir=args.agg,
+                    dataset=args.dataset))
     return 0
 
 

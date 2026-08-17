@@ -1,0 +1,28 @@
+unit,volume_key,lat,lon,geo_source,capacity_teu,capacity_source,thc_usd,zone,note
+Cát Lái,Cat Lai,10.76668,106.79498,osm,,,,song_sai_gon,
+SP-ITC,,10.78439,106.81696,osm,,,,song_sai_gon,
+Tân Cảng Hiệp Phước,Tan Cang Hiep Phuoc,10.64818,106.74398,osm,,,,song_sai_gon,
+Long An,,10.53601,106.73869,osm,,,,song_soai_rap,Toạ độ theo Cảng quốc tế Long An trên OSM
+Gemalink,,10.49000,107.01200,uoc_luong,,,,cai_mep,Bến ngoài cùng phía nam Cái Mép Hạ
+CMIT,,10.50896,107.01339,uoc_luong,,,,cai_mep,"Toạ độ theo node ""Cảng Cái Mép"" của OSM - tên chung, cần xác nhận"
+Tong hop Cai Mep,,10.52000,107.01800,uoc_luong,,,,cai_mep,
+TCIT,,10.53775,107.03230,osm,,,,cai_mep,Toạ độ theo Tan Cang - Cai Mep International Terminal trên OSM
+TCTT,,10.54700,107.03450,uoc_luong,,,,cai_mep,Chưa nối được với bến nào trong berth_map
+SSIT,,10.55500,107.02400,uoc_luong,,,,cai_mep,
+SITV,,10.56200,107.02900,uoc_luong,,,,cai_mep,
+SP-PSA,,10.56777,107.02232,osm,,,,cai_mep,
+Tong hop Thi Vai,,10.57226,107.02594,osm,,,,cai_mep,
+Xi mang Thi Vai,,10.57500,107.02700,uoc_luong,,,,cai_mep,
+Phu My,,10.58070,107.03035,uoc_luong,,,,cai_mep,"Toạ độ theo Cảng PTSC Phú Mỹ; cụm Phú Mỹ gồm 10 bến, đây chỉ là một điểm đại diện"
+Baria Serece,,10.58600,107.02900,uoc_luong,,,,cai_mep,
+QT Thi Vai,,10.59270,107.03000,osm,,,,cai_mep,
+Vung Tau,,10.34500,107.07000,uoc_luong,,,,vung_tau,
+PTSC Vung Tau,,10.37300,107.07700,uoc_luong,,,,vung_tau,
+Vietsovpetro,,10.36700,107.08300,uoc_luong,,,,vung_tau,
+PV GAS Vung Tau,,10.38100,107.08500,uoc_luong,,,,vung_tau,
+PV Oil Vung Tau,,10.37600,107.08100,uoc_luong,,,,vung_tau,
+Dong Xuyen,,10.38200,107.08800,uoc_luong,,,,vung_tau,
+Shell SPM,,10.32000,107.10000,uoc_luong,,,,vung_tau,Phao rót dầu ngoài khơi - vị trí chưa xác minh
+Esso SPM,,10.31500,107.11000,uoc_luong,,,,vung_tau,Phao rót dầu ngoài khơi - vị trí chưa xác minh
+Caltex SPM,,10.31000,107.09000,uoc_luong,,,,vung_tau,Phao rót dầu ngoài khơi - vị trí chưa xác minh
+Elf Gas SPM,,10.32500,107.09500,uoc_luong,,,,vung_tau,Phao rót dầu ngoài khơi - vị trí chưa xác minh

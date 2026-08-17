@@ -52,7 +52,9 @@ jobs:
       # Depends on both teu.json and berth_share.json, so it runs last.
       - name: Rebuild map points
         if: always()
-        run: python -m scraper.map_data
+        run: |
+          python -m scraper.map_data
+          python -m scraper.map_data --dataset hcm
 
       - name: Fail the run if either crawl failed
         if: always()

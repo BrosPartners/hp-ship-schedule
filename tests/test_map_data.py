@@ -104,3 +104,27 @@ def test_geo_source_is_carried_through(facts):
     out = build(facts, _teu([]), _share([]))
 
     assert all("geo_source" in p for p in out["points"])
+
+
+def test_volume_key_lets_the_two_sides_use_different_names(tmp_path):
+    """VPA ghi "Cát Lái" còn bản đồ bến ghi "Cat Lai" - phải nối được."""
+    facts_csv = (
+        "unit,volume_key,lat,lon,geo_source,capacity_teu,capacity_source,"
+        "thc_usd,zone,note\n"
+        "Cát Lái,Cat Lai,10.76,106.79,osm,,,,song_sai_gon,\n")
+    path = tmp_path / "port_facts.csv"
+    path.write_text(facts_csv, encoding="utf-8")
+
+    teu = _teu([("2026-01", "Cát Lái", 500.0)])
+    share = {"rows": [{"month": "2026-01", "cluster": "Cat Lai",
+                       "calls": 10, "dwt": 100}]}
+
+    out = build(load_facts(path), teu, share, volume_key="cluster")
+    point = out["points"][0]
+
+    assert point["teu_12m"] == 500 and point["calls_12m"] == 10
+
+
+def test_volume_key_defaults_to_the_unit_name(facts):
+    # File Hải Phòng không có cột volume_key; khoá phải bằng chính tên đơn vị.
+    assert all(p["volume_key"] == p["unit"] for p in facts)

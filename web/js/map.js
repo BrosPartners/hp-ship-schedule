@@ -1,7 +1,7 @@
 // Tab Bản đồ. Dùng Leaflet như dự án bds-visualize để giữ chung một ngôn ngữ
 // hình ảnh: chấm tròn, màu theo một chỉ tiêu, bán kính theo quy mô, kèm thanh
 // chỉnh độ mờ nền và nút ẩn nhãn bản đồ.
-import { loadJSON } from "./data.js";
+import { loadJSONFrom } from "./data.js";
 
 const LEAFLET_JS = "https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js";
 const LEAFLET_CSS = "https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css";
@@ -30,9 +30,25 @@ const TILES = {
   },
 };
 
-const ZONE_LABELS = {
-  lach_huyen: "Lạch Huyện", ha_nguon: "Đình Vũ (hạ nguồn)",
-  thuong_nguon: "Sông Cấm (thượng nguồn)",
+// Mỗi cảng có bộ khu riêng và file dữ liệu riêng; phần còn lại của bản đồ
+// giống hệt nhau nên dùng chung một hàm thay vì chép đôi.
+const PORTS = {
+  hp: {
+    agg: "data/agg",
+    facts: "data/port_facts.csv",
+    center: [20.83, 106.78],
+    store: "hp-ship-schedule.port-geo-overrides.v1",
+    zones: { lach_huyen: "Lạch Huyện", ha_nguon: "Đình Vũ (hạ nguồn)",
+             thuong_nguon: "Sông Cấm (thượng nguồn)" },
+  },
+  hcm: {
+    agg: "data/hcm/agg",
+    facts: "data/hcm/port_facts.csv",
+    center: [10.6, 106.9],
+    store: "hp-ship-schedule.hcm-geo-overrides.v1",
+    zones: { cai_mep: "Cái Mép - Thị Vải", song_sai_gon: "Sông Sài Gòn",
+             song_soai_rap: "Sông Soài Rạp (Long An)", vung_tau: "Vũng Tàu" },
+  },
 };
 const GEO_LABELS = {
   osm: "OpenStreetMap", uoc_luong: "ước lượng - cần chỉnh",
@@ -73,10 +89,10 @@ const fmt = (v, unit = "") =>
   (v === null || v === undefined ? "chưa có"
    : v.toLocaleString("vi-VN") + unit);
 
-function popupHtml(p, window_) {
+function popupHtml(p, window_, zoneLabels) {
   const capacity = p.capacity_shared ?? p.capacity_teu;
   const rows = [
-    ["Khu vực", ZONE_LABELS[p.zone] ?? "chưa xếp"],
+    ["Khu vực", zoneLabels[p.zone] ?? "chưa xếp"],
     [`Sản lượng ${window_} tháng`, fmt(p.teu_12m, " TEU")
       + (p.teu_shared ? ` <i>(VPA gộp: ${p.teu_shared})</i>` : "")],
     ["Công suất thiết kế", fmt(capacity, " TEU/năm")
@@ -140,20 +156,18 @@ export function parseMapsLink(text) {
 // không bay mất, nhưng đây vẫn chỉ là bản nháp trên máy này - nguồn thật là
 // data/port_facts.csv trong repo, nên giao diện phải nói rõ còn bao nhiêu sửa
 // chưa đưa vào repo thay vì để người dùng tưởng đã lưu.
-const STORE_KEY = "hp-ship-schedule.port-geo-overrides.v1";
-
-function loadOverrides() {
+function loadOverrides(storeKey) {
   try {
-    const raw = localStorage.getItem(STORE_KEY);
+    const raw = localStorage.getItem(storeKey);
     return raw ? JSON.parse(raw) : {};
   } catch {
     return {};   // localStorage bị chặn hoặc dữ liệu hỏng: coi như chưa sửa gì
   }
 }
 
-function saveOverrides(overrides) {
+function saveOverrides(storeKey, overrides) {
   try {
-    localStorage.setItem(STORE_KEY, JSON.stringify(overrides));
+    localStorage.setItem(storeKey, JSON.stringify(overrides));
     return true;
   } catch {
     return false;
@@ -181,22 +195,28 @@ function csvCell(value) {
   return `"${String(value ?? "").replace(/"/g, '""')}"`;
 }
 
-function toCsv(points) {
-  const cols = ["unit", "lat", "lon", "geo_source", "capacity_teu",
+function toCsv(points, hasVolumeKey) {
+  const cols = ["unit", ...(hasVolumeKey ? ["volume_key"] : []),
+                "lat", "lon", "geo_source", "capacity_teu",
                 "capacity_source", "thc_usd", "zone", "note"];
   return [cols.map(csvCell).join(","), ...points.map((p) =>
     cols.map((c) => csvCell(p[c])).join(","))].join("\n");
 }
 
-export async function initMap(root) {
+export async function initMap(root, port = "hp") {
+  const cfg = PORTS[port];
+  const ZONE_LABELS = cfg.zones;
   root.innerHTML = `<p>Đang tải bản đồ…</p>`;
-  const [L, data] = await Promise.all([loadLeaflet(), loadJSON("map_ports")]);
+  const [L, data] = await Promise.all([loadLeaflet(),
+                                       loadJSONFrom(cfg.agg, "map_ports")]);
+  const hasVolumeKey = data.points.some((p) => p.volume_key
+                                            && p.volume_key !== p.unit);
 
   // Bỏ những đơn vị không còn trong map_ports.json để bản nháp cũ không giữ
   // mãi một cảng đã bị xoá khỏi port_facts.csv.
   const known = new Set(data.points.map((p) => p.unit));
   const overrides = Object.fromEntries(
-    Object.entries(loadOverrides()).filter(([unit]) => known.has(unit)));
+    Object.entries(loadOverrides(cfg.store)).filter(([unit]) => known.has(unit)));
   applyOverrides(data.points, overrides);
 
   root.innerHTML = `
@@ -244,15 +264,22 @@ export async function initMap(root) {
       Dữ liệu ${data.window} tháng gần nhất (${data.months[0]} →
       ${data.months.at(-1)}). Sản lượng TEU từ VPA, lượt tàu từ kế hoạch tàu.
       <b>Toạ độ, công suất thiết kế và giá THC nằm trong
-      <code>data/port_facts.csv</code>, không phải số cào được.</b>
+      <code>${cfg.facts}</code>, không phải số cào được.</b>
       Toạ độ ghi rõ nguồn trong popup: lấy từ OpenStreetMap hay còn là ước
       lượng. Sửa toạ độ bằng cách dán link Google Maps hoặc bật "Kéo chấm để
       sửa toạ độ". <b>Sửa xong chỉ nằm trên trình duyệt này</b> - phải tải CSV
-      rồi thay <code>data/port_facts.csv</code> trong repo thì người khác mới
-      thấy. Cảng nào chưa có công suất/THC thì hiện "chưa có" chứ không đoán.
+      rồi thay <code>${cfg.facts}</code> trong repo thì người khác mới thấy. Cảng nào chưa có công suất/THC thì hiện "chưa có" chứ không đoán.
     </p>`;
 
-  const map = L.map("m-map").setView([20.83, 106.78], 11);
+  // Mặc định tô theo chỉ tiêu đầu tiên thực sự có số. TP.HCM chưa nhập công
+  // suất cảng nào, nên để nguyên mặc định "% công suất" thì mở bản đồ ra là
+  // một rừng chấm xám không nói lên gì.
+  const metricSel = document.getElementById("m-metric");
+  const firstWithData = [...metricSel.options].find((o) =>
+    data.points.some((p) => p[o.value] !== null && p[o.value] !== undefined));
+  if (firstWithData) metricSel.value = firstWithData.value;
+
+  const map = L.map("m-map").setView(cfg.center, 10);
   let tiles = null;
   const applyTile = () => {
     const key = document.getElementById("m-tile").value;
@@ -273,7 +300,7 @@ export async function initMap(root) {
   function remember(point) {
     overrides[point.unit] = { lat: point.lat, lon: point.lon,
                               geo_source: point.geo_source };
-    const stored = saveOverrides(overrides);
+    const stored = saveOverrides(cfg.store, overrides);
     renderPending(stored);
   }
 
@@ -307,7 +334,7 @@ export async function initMap(root) {
       ${units.join(", ")}.
       ${stored ? "Đang giữ tạm trên trình duyệt này nên tải lại trang không mất."
                : "<b>Trình duyệt không cho lưu tạm</b> - tải lại trang là mất."}
-      Bấm <b>Tải CSV toạ độ</b> rồi thay <code>data/port_facts.csv</code>
+      Bấm <b>Tải CSV toạ độ</b> rồi thay <code>${cfg.facts}</code>
       trong repo để lưu vĩnh viễn.
       <button type="button" id="m-forget">Bỏ các sửa này</button>`;
     document.getElementById("m-forget").addEventListener("click", () => {
@@ -322,10 +349,10 @@ export async function initMap(root) {
         return;
       }
       for (const unit of Object.keys(overrides)) delete overrides[unit];
-      saveOverrides(overrides);
+      saveOverrides(cfg.store, overrides);
       renderPending();
       // Nạp lại toạ độ gốc từ JSON thay vì đoán ngược giá trị cũ.
-      loadJSON("map_ports").then((fresh) => {
+      loadJSONFrom(cfg.agg, "map_ports").then((fresh) => {
         const byUnit = new Map(fresh.points.map((p) => [p.unit, p]));
         for (const p of data.points) {
           const src = byUnit.get(p.unit);
@@ -385,7 +412,7 @@ export async function initMap(root) {
       } else {
         marker = L.circleMarker([p.lat, p.lon], style);
       }
-      marker.bindPopup(popupHtml(p, data.window));
+      marker.bindPopup(popupHtml(p, data.window, ZONE_LABELS));
       if (labels) {
         marker.bindTooltip(p.unit, { permanent: true, direction: "right",
                                      className: "map-label" });
@@ -470,7 +497,7 @@ export async function initMap(root) {
     window.open(openBtn.dataset.href, "_blank", "noopener"));
 
   document.getElementById("m-export").addEventListener("click", () => {
-    const blob = new Blob(["﻿" + toCsv(data.points)],
+    const blob = new Blob(["﻿" + toCsv(data.points, hasVolumeKey)],
                           { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");

@@ -26,6 +26,7 @@
   <nav class="tabs subtabs" id="subtabs-hcm" hidden>
     <button data-tab="hcm-lookup">Tra cứu</button>
     <button data-tab="hcm">Phân tích</button>
+    <button data-tab="hcm-map">Bản đồ</button>
   </nav>
 
   <main>
@@ -34,6 +35,7 @@
     <section id="tab-map" hidden></section>
     <section id="tab-hcm-lookup" hidden></section>
     <section id="tab-hcm" hidden></section>
+    <section id="tab-hcm-map" hidden></section>
   </main>
 
   <script type="module">
@@ -48,7 +50,7 @@
       hp: { title: "Lịch tàu cảng Hải Phòng",
             tabs: ["lookup", "analysis", "map"], initial: "analysis" },
       hcm: { title: "Lịch tàu cảng TP.HCM",
-             tabs: ["hcm-lookup", "hcm"], initial: "hcm" },
+             tabs: ["hcm-lookup", "hcm", "hcm-map"], initial: "hcm" },
     };
     const ALL_TABS = Object.values(PORTS).flatMap((p) => p.tabs);
     const loaded = new Set();
@@ -65,7 +67,9 @@
       const root = document.getElementById(`tab-${name}`);
       if (name === "lookup") initLookup(root);
       if (name === "analysis") (await import("./js/analysis.js")).initAnalysis(root);
-      if (name === "map") (await import("./js/map.js")).initMap(root);
+      if (name === "map") (await import("./js/map.js")).initMap(root, "hp");
+      if (name === "hcm-map")
+        (await import("./js/map.js")).initMap(root, "hcm");
       if (name === "hcm") (await import("./js/hcm.js")).initHcm(root);
       if (name === "hcm-lookup")
         (await import("./js/hcm-lookup.js")).initHcmLookup(root);

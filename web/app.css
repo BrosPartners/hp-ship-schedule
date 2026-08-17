@@ -16,6 +16,10 @@ h1 { font-size: 18px; margin: 0; }
 .badge.err  { background: var(--err-bg);  color: var(--err-fg); }
 nav.tabs { display: flex; gap: 4px; padding: 8px 20px;
            border-bottom: 1px solid var(--line); }
+/* `display: flex` thắng quy tắc mặc định `[hidden] { display: none }` của
+   trình duyệt, nên thanh tab con của cảng không được chọn vẫn hiện ra. Phải
+   nói lại tường minh. */
+nav.tabs[hidden] { display: none; }
 nav.tabs button { border: 1px solid var(--line); background: none;
                   padding: 6px 14px; border-radius: 6px; cursor: pointer; }
 nav.tabs button.active { background: var(--accent); color: #fff;
