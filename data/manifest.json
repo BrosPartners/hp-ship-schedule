@@ -4,10 +4,10 @@
   ],
   "start_date": "2023-01-01",
   "last_plan_date": "2026-08-17",
-  "last_crawled_at": "2026-08-16 02:07:19.546835",
-  "row_count": 103764,
+  "last_crawled_at": "2026-08-17 02:05:18.227452",
+  "row_count": 103896,
   "days_covered": 1324,
-  "days_expected": 1324,
+  "days_expected": 1325,
   "missing_days": [],
   "partitions": [
     "ship_plan_2023-01.parquet",
