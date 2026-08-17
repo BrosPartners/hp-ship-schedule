@@ -165,12 +165,17 @@ export async function initAnalysis(root) {
              { left: 70, right: 20, top: "62%", height: "28%" }],
       xAxis: [{ type: "category", data: size.monthly.map((r) => r.month) },
               { type: "category", gridIndex: 1, data: bands }],
+      // Mớn nước (~6,7 m) từng nằm chung trục với DWT (~18.700) nên bị ép dẹp
+      // sát đáy, không đọc được gì. Cho nó trục riêng cố định 0-20 m: thang cố
+      // định để so được giữa các lần xem, và đủ rộng cho tàu sâu nhất.
       yAxis: [{ type: "value", name: "DWT bình quân" },
-              { type: "value", gridIndex: 1, name: "Lượt" }],
+              { type: "value", gridIndex: 1, name: "Lượt" },
+              { type: "value", name: "Mớn nước (m)", position: "right",
+                min: 0, max: 20 }],
       series: [
         { name: "DWT bình quân", type: "line",
           data: size.monthly.map((r) => r.dwt_avg) },
-        { name: "Mớn nước bình quân", type: "line", yAxisIndex: 0,
+        { name: "Mớn nước bình quân", type: "line", yAxisIndex: 2,
           data: size.monthly.map((r) => r.draft_avg) },
         { name: "Phân bố mớn nước", type: "bar", xAxisIndex: 1, yAxisIndex: 1,
           data: bands.map((b) => size.draft_hist

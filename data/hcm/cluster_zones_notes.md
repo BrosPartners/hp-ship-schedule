@@ -32,3 +32,12 @@ container**, nên chúng chỉ xuất hiện ở chart lượt tàu chứ không
 
 Một cụm không khai báo trong file sẽ hiện là `(chưa xếp)` chứ không bị bỏ khỏi
 chart - im lặng bỏ đi là cách một cụm mới biến mất mà không ai biết.
+
+## Cụm đã loại khỏi dữ liệu
+
+- **Ba Son** (`CẦU CẢNG SỐ 2 - BA SON`, 196 lượt, 0,5% tổng): owner yêu cầu bỏ.
+  Đặt `type=external` trong `berth_map.csv` thay vì xoá hẳn dòng map, để tên thô
+  vẫn được nhận diện và không quay lại trong `unmapped_report.csv` như một vị
+  trí lạ. `throughput_rows` chỉ đếm `to_type == "berth"` nên cụm này biến khỏi
+  mọi chart. Sửa xong phải chạy `python -m tools.remap_berths --dataset hcm
+  --apply` vì `type` được ghi cứng vào Parquet.

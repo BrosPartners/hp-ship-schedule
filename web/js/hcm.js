@@ -60,6 +60,7 @@ export async function initHcm(root) {
         <span><button data-png="${id}">Tải PNG</button>
               <button data-csv="${id}">Tải data</button></span>
       </div>
+      ${id === "h1" ? zoneToggles("h1") : ""}
       ${id === "h2" ? zoneToggles("h2") : ""}
       ${id === "h4" ? zoneToggles("h4") : ""}
       ${id === "h5" ? `
@@ -125,16 +126,23 @@ export async function initHcm(root) {
   function draw() {
     const metric = document.getElementById("h-metric").value;
 
-    // Chart 1 - monthly totals
-    csvData.h1 = volume.rows;
+    // Chart 1 - tổng theo tháng, cộng từ zone_share thay vì monthly_volume để
+    // lọc được theo khu. Hai nguồn lệch nhau đúng phần bị mốc phủ dữ liệu loại
+    // ra (xem source_coverage.csv), và phần đó thì không nên vẽ.
+    const zones1 = [...root.querySelectorAll(".h1-zone:checked")]
+      .map((cb) => cb.value);
+    const rows1 = zoneShare.rows.filter((r) => zones1.includes(r.zone));
+    const byMonth1 = {};
+    for (const r of rows1) byMonth1[r.month] = (byMonth1[r.month] ?? 0) + r[metric];
+    csvData.h1 = rows1;
     chart("h1").setOption({
-      tooltip: { trigger: "axis" }, grid: { left: 70, right: 20 },
+      tooltip: { trigger: "axis" }, grid: { left: 80, right: 20 },
       xAxis: { type: "category", data: months },
       yAxis: { type: "value" },
       series: [{ name: metric === "calls" ? "Lượt tàu" : "Tổng DWT",
                  type: "line", smooth: true, areaStyle: {},
-                 data: months.map((m) => volume.rows.find((r) => r.month === m)?.[metric] ?? 0) }],
-    });
+                 data: months.map((m) => byMonth1[m] ?? 0) }],
+    }, true);
 
     // Chart 2 - cluster share, 100% stacked area. Lọc theo khu rồi chuẩn hoá
     // lại về 100% của phần đang chọn, giống chart 2/7 bên Hải Phòng.
@@ -166,17 +174,23 @@ export async function initHcm(root) {
     chart("h3").setOption({
       tooltip: { trigger: "axis" }, legend: {}, grid: { left: 70, right: 20 },
       xAxis: { type: "category", data: size.monthly.map((r) => r.month) },
+      grid: { left: 80, right: 120 },
+      // Ba đại lượng ba thang khác nhau (DWT ~18.000, LOA ~114, mớn ~6). Mớn
+      // nước có trục riêng cố định 0-20 m để đọc được thay đổi vài tấc; LOA
+      // tách sang trục thứ ba thay vì dùng chung, vì 114 m sẽ bị trục 0-20 cắt.
       yAxis: [{ type: "value", name: "DWT bình quân" },
-              { type: "value", name: "m", position: "right" }],
+              { type: "value", name: "Mớn nước (m)", position: "right",
+                min: 0, max: 20 },
+              { type: "value", name: "LOA (m)", position: "right", offset: 58 }],
       series: [
         { name: "DWT bình quân", type: "line",
           data: size.monthly.map((r) => r.dwt_avg) },
-        { name: "LOA bình quân (m)", type: "line", yAxisIndex: 1,
+        { name: "LOA bình quân (m)", type: "line", yAxisIndex: 2,
           data: size.monthly.map((r) => r.loa_avg) },
         { name: "Mớn nước bình quân (m)", type: "line", yAxisIndex: 1,
           data: size.monthly.map((r) => r.draft_avg) },
       ],
-    });
+    }, true);
 
     // Chart 4 - thị phần theo khu, đối xứng với chart 7 của Hải Phòng
     const zones4 = [...root.querySelectorAll(".h4-zone:checked")]
@@ -276,7 +290,7 @@ export async function initHcm(root) {
   document.getElementById("h5-metric").addEventListener("change", draw);
 
   // Bộ lọc khu của chart 2 và 4 dùng chung một cách nối sự kiện.
-  for (const n of ["h2", "h4"]) {
+  for (const n of ["h1", "h2", "h4"]) {
     const boxes = () => [...root.querySelectorAll(`.${n}-zone`)];
     boxes().forEach((cb) => cb.addEventListener("change", draw));
     const setAll = (checked) => {
