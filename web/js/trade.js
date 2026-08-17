@@ -54,11 +54,15 @@ function pickerHtml(prefix, groups, labels) {
 
 export async function initTrade(root) {
   root.innerHTML = `<p>Đang tải số liệu xuất nhập khẩu…</p>`;
-  const [monthly, cx, cn, gx, gn] = await Promise.all([
-    loadJSONFrom(AGG, "monthly"), loadJSONFrom(AGG, "commodity_export"),
-    loadJSONFrom(AGG, "commodity_import"), loadJSONFrom(AGG, "country_export"),
-    loadJSONFrom(AGG, "country_import"),
-  ]);
+  // Tên biến khớp đúng thứ tự fetch bên dưới - lần trước từng bị đảo (gx/cx
+  // gán nhầm giữa commodity và country) khiến chart 2/3 vẽ nhầm dữ liệu nước
+  // còn chart 4/5 vẽ nhầm dữ liệu mặt hàng, chỉ lộ ra khi so số thực tế.
+  const [monthly, commodityExport, commodityImport, countryExport, countryImport] =
+    await Promise.all([
+      loadJSONFrom(AGG, "monthly"), loadJSONFrom(AGG, "commodity_export"),
+      loadJSONFrom(AGG, "commodity_import"), loadJSONFrom(AGG, "country_export"),
+      loadJSONFrom(AGG, "country_import"),
+    ]);
 
   root.innerHTML = `
     <div class="filters">
@@ -80,14 +84,15 @@ export async function initTrade(root) {
       ${id === "tr5" ? pickerHtml("tr5", COUNTRY_ORDER_NK, COUNTRY_LABELS) : ""}
       <div class="chart" id="${id}"></div>`).join("")}
     <p class="note">
-      Nguồn: Tổng cục Hải quan Việt Nam (customs.gov.vn), biểu "Xuất/Nhập khẩu
-      theo nước-vùng lãnh thổ x mặt hàng chủ yếu", công bố hằng tháng dưới dạng
-      PDF - cổng hải quan không phát hành bản Excel. Số liệu mang nhãn
-      <b>Sơ bộ</b> và có thể được hải quan điều chỉnh lại ở kỳ công bố sau; bản
-      mới hơn sẽ đè lên bản cũ khi chạy lại pipeline. Nhóm hàng và nhóm nước là
-      cách tự gộp từ ~50 mặt hàng chủ yếu và ~89 nước hải quan liệt kê riêng -
-      xem <code>data/trade/commodity_map.csv</code> và
-      <code>country_map.csv</code> để đổi cách gộp.
+      Nguồn: bảng "Trị giá và mặt hàng xuất/nhập khẩu" và "Kim ngạch XNK phân
+      theo nước, khối nước" (Tổng cục Thống kê/Hải quan), owner tải file Excel
+      về và cập nhật vào repo hằng tháng. Số liệu mang nhãn <b>Sơ bộ</b> và có
+      thể được cơ quan thống kê điều chỉnh lại ở kỳ công bố sau. Khối EU/ASEAN
+      lấy trực tiếp từ dòng tổng khối do chính nguồn tính sẵn, không phải tự
+      cộng từng nước. Nhóm hàng và nhóm nước còn lại là cách tự gộp từ ~50-90
+      mặt hàng/nước liệt kê riêng - xem
+      <code>data/trade/commodity_map_xls.csv</code> và
+      <code>country_map_xls.csv</code> để đổi cách gộp.
     </p>
   `;
 
@@ -153,10 +158,10 @@ export async function initTrade(root) {
       }, true);
     };
 
-    stacked("tr2", gx, COMMODITY_ORDER_XK, COMMODITY_LABELS, "tr2");
-    stacked("tr3", gn, COMMODITY_ORDER_NK, COMMODITY_LABELS, "tr3");
-    stacked("tr4", cx, COUNTRY_ORDER_XK, COUNTRY_LABELS, "tr4");
-    stacked("tr5", cn, COUNTRY_ORDER_NK, COUNTRY_LABELS, "tr5");
+    stacked("tr2", commodityExport, COMMODITY_ORDER_XK, COMMODITY_LABELS, "tr2");
+    stacked("tr3", commodityImport, COMMODITY_ORDER_NK, COMMODITY_LABELS, "tr3");
+    stacked("tr4", countryExport, COUNTRY_ORDER_XK, COUNTRY_LABELS, "tr4");
+    stacked("tr5", countryImport, COUNTRY_ORDER_NK, COUNTRY_LABELS, "tr5");
   }
 
   for (const prefix of ["tr2", "tr3", "tr4", "tr5"]) {
