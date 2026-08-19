@@ -1,4 +1,5 @@
 import fitz
+import pymupdf_fonts
 import pytest
 
 from scraper.trade.parse import (ChecksumError, HeaderNotFoundError,
@@ -13,19 +14,31 @@ FIRST_DATA_Y = 219
 
 
 # Base14 "helv" chỉ có bảng mã Latin-1, không có dấu tiếng Việt tổ hợp sẵn
-# (ộ, ậ, ẤN...) - cần font hệ thống có phủ Unicode để dựng PDF giả lập đúng.
-_VN_FONT = r"C:\Windows\Fonts\arial.ttf"
+# (ộ, ậ, ẤN...) nên không dựng được PDF giả lập đúng; các font dựng sẵn khác
+# của MuPDF ("china-s", "japan"...) cũng đã thử và đều rơi dấu.
+#
+# Trước đây trỏ thẳng vào C:\Windows\Fonts\arial.ttf - chạy được trên máy
+# Windows nhưng chết trên runner Linux của CI, làm hỏng cả workflow crawl
+# hằng ngày. Dùng Noto Sans do chính gói `pymupdf-fonts` đóng kèm: cùng một
+# file font trên mọi máy, không phụ thuộc máy chạy có cài font gì.
+_VN_FONT = "notos"
+_VN_FONT_BUFFER = pymupdf_fonts.myfont(_VN_FONT)
+
+
+def _register_font(page):
+    """Nhúng font vào trang; phải gọi trước mọi insert_text trên trang đó."""
+    page.insert_font(fontname=_VN_FONT, fontbuffer=_VN_FONT_BUFFER)
+    return page
 
 
 def _draw_row(page, y, cells):
     """cells: list (x, text). Toạ độ khớp đúng các cột đã đo trên file thật."""
     for x, text in cells:
-        page.insert_text((x, y), text, fontsize=9, fontfile=_VN_FONT,
-                         fontname="F0")
+        page.insert_text((x, y), text, fontsize=9, fontname=_VN_FONT)
 
 
 def _new_page(doc):
-    page = doc.new_page(width=612, height=850)
+    page = _register_font(doc.new_page(width=612, height=850))
     _draw_row(page, PAGE_TITLE_Y, [(86, "BỘ"), (105, "TÀI"), (128, "CHÍNH")])
     _draw_row(page, HEADER_UNIT_Y, [(110, "Nước/Mặt"), (161, "hàng"),
                                     (187, "chủ"), (207, "yếu"), (282, "ĐVT")])
@@ -128,7 +141,7 @@ def test_country_continues_across_a_page_break(tmp_path):
 
 def test_no_header_raises(tmp_path):
     doc = fitz.open()
-    page = doc.new_page(width=612, height=850)
+    page = _register_font(doc.new_page(width=612, height=850))
     _draw_row(page, 100, [(61, "AI CẬP"), (390, "1.000")])
     path = tmp_path / "noheader.pdf"
     doc.save(path); doc.close()

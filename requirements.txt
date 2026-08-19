@@ -6,4 +6,8 @@ pyarrow==18.1.0
 pytest==8.3.4
 openpyxl==3.1.5
 PyMuPDF==1.24.14
+# Font Noto Sans đóng kèm, dùng dựng PDF giả lập có dấu tiếng Việt trong
+# tests/test_trade_parse.py - trước đây test trỏ vào font Windows nên chết
+# trên runner Linux.
+pymupdf-fonts==1.0.5
 xlrd==2.0.1
