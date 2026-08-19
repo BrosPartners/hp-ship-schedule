@@ -37,10 +37,14 @@ jobs:
         id: crawl_hp
         run: python -m scraper.daily
 
-      - name: Crawl and rebuild (HCM City)
-        id: crawl_hcm
-        if: always()
-        run: python -m scraper.hcm.daily
+      # HCM City KHÔNG crawl ở đây nữa: cangvuhanghaitphcm.gov.vn timeout mọi
+      # kết nối từ IP của GitHub-hosted runner (xác nhận 2026-08-19, chặn
+      # liên tục 4 ngày liền), trong khi vẫn trả lời bình thường từ IP Việt
+      # Nam. Đã chuyển crawl HCM sang cron riêng trên VPS `dev01` (Vietnix,
+      # IP VN) chạy 05:30 giờ VN - trước giờ job này chạy (07:30) - nên
+      # `git pull` ở bước checkout phía trên đã lấy đúng data HCM mới nhất.
+      # Bước rebuild map dưới đây vẫn build lại cả hai dataset để không lệch
+      # nếu cron VPS trễ hoặc lỗi một hôm nào đó.
 
       # VPA volume changes monthly, but its denominator (calls, DWT) changes
       # daily, so teu.json has to be rebuilt after each crawl or it drifts out
@@ -69,11 +73,11 @@ jobs:
         if: always()
         run: python -m scraper.trade.build_xls
 
-      - name: Fail the run if either crawl failed
+      - name: Fail the run if the Hai Phong crawl failed
         if: always()
         run: |
-          if [ "${{ steps.crawl_hp.outcome }}" != "success" ] || [ "${{ steps.crawl_hcm.outcome }}" != "success" ]; then
-            echo "Hai Phong: ${{ steps.crawl_hp.outcome }}, HCM: ${{ steps.crawl_hcm.outcome }}" >&2
+          if [ "${{ steps.crawl_hp.outcome }}" != "success" ]; then
+            echo "Hai Phong: ${{ steps.crawl_hp.outcome }}" >&2
             exit 1
           fi
 
