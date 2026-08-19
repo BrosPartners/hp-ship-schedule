@@ -60,6 +60,52 @@ function yoy(rows, idx, key) {
   return prev ? +((100 * (rows[idx][key] - prev)) / prev).toFixed(1) : null;
 }
 
+function pct(cur, prev) {
+  if (cur == null || prev == null || !prev) return null;
+  return +((100 * (cur - prev)) / prev).toFixed(1);
+}
+
+function fmtPct(v) {
+  if (v === null || v === undefined) return "—";
+  const cls = v > 0 ? "pos" : v < 0 ? "neg" : "";
+  return `<span class="${cls}">${v > 0 ? "+" : ""}${v}%</span>`;
+}
+
+function fmtVal(v, div) {
+  return v === null || v === undefined ? "—" : (v / div).toFixed(2);
+}
+
+// Ba mốc tháng dùng cho bảng tăng trưởng: lấy từ chính tập tháng của dữ liệu
+// đang xét (không dùng `months` chung của chart 1), vì mỗi file agg có thể
+// phủ khác nhau đôi chút - an toàn hơn là giả định tất cả trùng khớp. Bảng cố
+// tình KHÔNG theo bộ lọc "Kỳ" ở trên: luôn so tháng mới nhất thật với tháng
+// liền trước và cùng kỳ năm ngoái, để %YoY không bị mất khi ai đó lọc "Kỳ" về
+// một năm đơn lẻ (lọc theo năm sẽ cắt luôn dữ liệu năm trước, hết cái để so).
+function refMonths(monthsUniq) {
+  const n = monthsUniq.length;
+  return {
+    latest: monthsUniq[n - 1],
+    mom: n >= 2 ? monthsUniq[n - 2] : null,
+    yoy: n >= 13 ? monthsUniq[n - 13] : null,
+  };
+}
+
+function growthTableHtml(id, rows, div, unitLabel, isGroupTable) {
+  return `
+    <table class="grid growth-table" id="${id}">
+      <thead><tr><th>${isGroupTable ? "Nhóm" : "Chỉ tiêu"}</th>
+        <th class="num">Giá trị (${unitLabel})</th>
+        <th class="num">%MoM (so tháng trước)</th>
+        <th class="num">%YoY (so cùng kỳ năm trước)</th></tr></thead>
+      <tbody>${rows.map((r) => `<tr${r.isTotal ? ' class="total"' : ""}>
+        <td>${r.label}</td>
+        <td class="num">${fmtVal(r.value, div)}</td>
+        <td class="num">${fmtPct(r.mom)}</td>
+        <td class="num">${fmtPct(r.yoy)}</td>
+      </tr>`).join("")}</tbody>
+    </table>`;
+}
+
 function pickerHtml(prefix, groups, labels) {
   return `<div class="filters berth-picker" id="${prefix}-picker">
     ${groups.map((g) =>
@@ -103,7 +149,8 @@ export async function initTrade(root) {
       ${id === "tr5" ? pickerHtml("tr5", COUNTRY_ORDER_NK, COUNTRY_LABELS) : ""}
       ${id === "tr6" ? pickerHtml("tr6", ITEM_ORDER_XK, ITEM_LABELS) : ""}
       ${id === "tr7" ? pickerHtml("tr7", ITEM_ORDER_NK, ITEM_LABELS) : ""}
-      <div class="chart" id="${id}"></div>`).join("")}
+      <div class="chart" id="${id}"></div>
+      <div id="${id}-growth"></div>`).join("")}
     <p class="note">
       Nguồn: bảng "Trị giá và mặt hàng xuất/nhập khẩu" và "Kim ngạch XNK phân
       theo nước, khối nước" (Tổng cục Thống kê/Hải quan), owner tải file Excel
@@ -160,6 +207,50 @@ export async function initTrade(root) {
       })),
     }, true);
 
+    {
+      const allMonths = monthly.rows.map((r) => r.month);
+      const { latest, mom, yoy: yoyMonth } = refMonths(allMonths);
+      const byMonth = new Map(monthly.rows.map((r) => [r.month, r]));
+      const rows1g = ["export", "import"].map((key) => ({
+        label: key === "export" ? "Xuất khẩu" : "Nhập khẩu",
+        value: byMonth.get(latest)?.[key],
+        mom: pct(byMonth.get(latest)?.[key], mom && byMonth.get(mom)?.[key]),
+        yoy: pct(byMonth.get(latest)?.[key], yoyMonth && byMonth.get(yoyMonth)?.[key]),
+      }));
+      document.getElementById("tr1-growth").innerHTML =
+        `<p class="note" style="margin-top:6px">Tăng trưởng tháng <b>${latest}</b>
+         so tháng <b>${mom ?? "—"}</b> (MoM) và tháng <b>${yoyMonth ?? "—"}</b> (YoY):</p>`
+        + growthTableHtml("tr1-growth-table", rows1g, div, unitLabel);
+    }
+
+    // Bảng tăng trưởng dùng chung cho chart 2-7: luôn tính trên TOÀN BỘ
+    // data.rows (chỉ lọc theo nhóm đang tick, KHÔNG lọc theo "Kỳ") - lý do
+    // giống chart 1, xem ghi chú ở refMonths().
+    const renderGrowthTable = (id, data, groups, labels, totalLabel) => {
+      const rows = data.rows.filter((r) => groups.includes(r.group));
+      const monthsUniq = [...new Set(rows.map((r) => r.month))].sort();
+      const { latest, mom, yoy: yoyMonth } = refMonths(monthsUniq);
+      const byKey = new Map(rows.map((r) => [`${r.month}|${r.group}`, r.usd]));
+      const val = (g, m) => (m ? byKey.get(`${m}|${g}`) : undefined);
+      const items = groups.map((g) => ({
+        label: labels[g], value: val(g, latest),
+        mom: pct(val(g, latest), val(g, mom)), yoy: pct(val(g, latest), val(g, yoyMonth)),
+      }));
+      const sum = (m) => (m
+        ? groups.reduce((s, g) => s + (val(g, m) ?? 0), 0) : null);
+      const totalCur = sum(latest), totalMom = sum(mom), totalYoy = sum(yoyMonth);
+      const rowsOut = groups.length > 1
+        ? [...items, { label: totalLabel, value: totalCur, isTotal: true,
+                       mom: pct(totalCur, totalMom), yoy: pct(totalCur, totalYoy) }]
+        : items;
+      const el = document.getElementById(`${id}-growth`);
+      el.innerHTML = latest
+        ? `<p class="note" style="margin-top:6px">Tăng trưởng tháng <b>${latest}</b>
+           so tháng <b>${mom ?? "—"}</b> (MoM) và tháng <b>${yoyMonth ?? "—"}</b> (YoY):</p>`
+          + growthTableHtml(`${id}-growth-table`, rowsOut, div, unitLabel, true)
+        : `<p class="note">Chưa chọn nhóm nào để tính tăng trưởng.</p>`;
+    };
+
     // Chart 2-5: bốn chart cùng một khuôn - cột chồng theo nhóm, lọc bằng
     // checkbox riêng từng chart, giống cách chart 2/8 bên tab Hải Phòng.
     const stacked = (id, data, order, labels, prefix) => {
@@ -181,6 +272,7 @@ export async function initTrade(root) {
             +((byKey.get(`${m}|${g}`) ?? 0) / div).toFixed(2)),
         })),
       }, true);
+      renderGrowthTable(id, data, groups, labels, "Tổng (các nhóm hiển thị)");
     };
 
     stacked("tr2", commodityExport, COMMODITY_ORDER_XK, COMMODITY_LABELS, "tr2");
@@ -212,6 +304,7 @@ export async function initTrade(root) {
           }),
         })),
       }, true);
+      renderGrowthTable(id, data, groups, labels, "Tổng (các mặt hàng hiển thị)");
     };
     lines("tr6", itemExport, ITEM_ORDER_XK, ITEM_LABELS, "tr6");
     lines("tr7", itemImport, ITEM_ORDER_NK, ITEM_LABELS, "tr7");
