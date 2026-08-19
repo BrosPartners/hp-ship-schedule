@@ -43,7 +43,11 @@ const COUNTRY_ORDER_NK = ["trung_quoc", "my", "asean", "eu",
 // hoá lỏng hay dược phẩm trong bảng nguồn), nên hai order khác nhau.
 const ITEM_LABELS = {
   than: "Than", dau_tho: "Dầu thô", xang_dau: "Xăng dầu",
-  khi_dot_hoa_long: "Khí đốt hóa lỏng", giay: "Giấy các loại",
+  khi_dot_hoa_long: "Khí đốt hóa lỏng",
+  // Xuất khẩu gộp chung một dòng "Giấy và các sản phẩm từ giấy" nên dùng
+  // nhãn chung; nhập khẩu nguồn tách riêng giấy nguyên liệu/thành phẩm
+  // (giay) và sản phẩm từ giấy - bao bì, vở, giấy vệ sinh... (giay_sp).
+  giay: "Giấy các loại", giay_sp: "Sản phẩm từ giấy",
   may_vi_tinh_dien_tu: "Máy vi tính, sản phẩm điện tử và linh kiện",
   dien_thoai: "Điện thoại các loại và linh kiện",
   dien_gia_dung: "Hàng điện gia dụng và linh kiện", duoc_pham: "Dược phẩm",
@@ -51,8 +55,8 @@ const ITEM_LABELS = {
 const ITEM_ORDER_XK = ["than", "dau_tho", "xang_dau", "giay",
                        "may_vi_tinh_dien_tu", "dien_thoai", "dien_gia_dung"];
 const ITEM_ORDER_NK = ["than", "dau_tho", "xang_dau", "khi_dot_hoa_long", "giay",
-                       "may_vi_tinh_dien_tu", "dien_thoai", "dien_gia_dung",
-                       "duoc_pham"];
+                       "giay_sp", "may_vi_tinh_dien_tu", "dien_thoai",
+                       "dien_gia_dung", "duoc_pham"];
 
 function yoy(rows, idx, key) {
   if (idx < 12 || !rows[idx - 12]) return null;

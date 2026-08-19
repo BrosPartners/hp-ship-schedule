@@ -43,6 +43,11 @@ WATCH_ITEMS = {
     "xang_dau": {"export": "Xăng dầu các loại", "import": "Xăng dầu các loại"},
     "khi_dot_hoa_long": {"export": None, "import": "Khí đốt hóa lỏng"},
     "giay": {"export": "Giấy và các sản phẩm từ giấy", "import": "Giấy các loại"},
+    # File nhập khẩu tách riêng "Giấy các loại" (giấy nguyên liệu/thành phẩm
+    # dạng cuộn/tờ) và "Sản phẩm từ giấy" (bao bì, vở, giấy vệ sinh...) thành
+    # hai dòng khác nhau - file xuất khẩu gộp chung một dòng "giay" ở trên nên
+    # không có mặt hàng "giay_sp" tương ứng ở chiều xuất.
+    "giay_sp": {"export": None, "import": "Sản phẩm từ giấy"},
     "may_vi_tinh_dien_tu": {
         "export": "Máy vi tính, sản phẩm điện tử & linh liện",
         "import": "Máy vi tính, sản phẩm điện tử & linh kiện",
