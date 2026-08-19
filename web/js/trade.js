@@ -13,6 +13,8 @@ const CHARTS = [
   ["tr3", "3. Nhập khẩu theo nhóm hàng"],
   ["tr4", "4. Xuất khẩu theo nhóm nước"],
   ["tr5", "5. Nhập khẩu theo nhóm nước"],
+  ["tr6", "6. Xuất khẩu một số mặt hàng chủ lực"],
+  ["tr7", "7. Nhập khẩu một số mặt hàng chủ lực"],
 ];
 
 const COMMODITY_LABELS = {
@@ -36,6 +38,22 @@ const COUNTRY_ORDER_XK = ["trung_quoc", "my", "asean", "eu", "khac"];
 const COUNTRY_ORDER_NK = ["trung_quoc", "my", "asean", "eu",
                           "an_do_dai_loan_han_nhat", "khac"];
 
+// Mặt hàng chủ lực xem riêng lẻ (chart 6/7) - không phải mọi mặt hàng đều có
+// cả hai chiều XK/NK (VD Việt Nam không có dòng xuất khẩu riêng cho khí đốt
+// hoá lỏng hay dược phẩm trong bảng nguồn), nên hai order khác nhau.
+const ITEM_LABELS = {
+  than: "Than", dau_tho: "Dầu thô", xang_dau: "Xăng dầu",
+  khi_dot_hoa_long: "Khí đốt hóa lỏng", giay: "Giấy các loại",
+  may_vi_tinh_dien_tu: "Máy vi tính, sản phẩm điện tử và linh kiện",
+  dien_thoai: "Điện thoại các loại và linh kiện",
+  dien_gia_dung: "Hàng điện gia dụng và linh kiện", duoc_pham: "Dược phẩm",
+};
+const ITEM_ORDER_XK = ["than", "dau_tho", "xang_dau", "giay",
+                       "may_vi_tinh_dien_tu", "dien_thoai", "dien_gia_dung"];
+const ITEM_ORDER_NK = ["than", "dau_tho", "xang_dau", "khi_dot_hoa_long", "giay",
+                       "may_vi_tinh_dien_tu", "dien_thoai", "dien_gia_dung",
+                       "duoc_pham"];
+
 function yoy(rows, idx, key) {
   if (idx < 12 || !rows[idx - 12]) return null;
   const prev = rows[idx - 12][key];
@@ -57,11 +75,12 @@ export async function initTrade(root) {
   // Tên biến khớp đúng thứ tự fetch bên dưới - lần trước từng bị đảo (gx/cx
   // gán nhầm giữa commodity và country) khiến chart 2/3 vẽ nhầm dữ liệu nước
   // còn chart 4/5 vẽ nhầm dữ liệu mặt hàng, chỉ lộ ra khi so số thực tế.
-  const [monthly, commodityExport, commodityImport, countryExport, countryImport] =
-    await Promise.all([
+  const [monthly, commodityExport, commodityImport, countryExport, countryImport,
+         itemExport, itemImport] = await Promise.all([
       loadJSONFrom(AGG, "monthly"), loadJSONFrom(AGG, "commodity_export"),
       loadJSONFrom(AGG, "commodity_import"), loadJSONFrom(AGG, "country_export"),
-      loadJSONFrom(AGG, "country_import"),
+      loadJSONFrom(AGG, "country_import"), loadJSONFrom(AGG, "commodity_items_export"),
+      loadJSONFrom(AGG, "commodity_items_import"),
     ]);
 
   root.innerHTML = `
@@ -82,6 +101,8 @@ export async function initTrade(root) {
       ${id === "tr3" ? pickerHtml("tr3", COMMODITY_ORDER_NK, COMMODITY_LABELS) : ""}
       ${id === "tr4" ? pickerHtml("tr4", COUNTRY_ORDER_XK, COUNTRY_LABELS) : ""}
       ${id === "tr5" ? pickerHtml("tr5", COUNTRY_ORDER_NK, COUNTRY_LABELS) : ""}
+      ${id === "tr6" ? pickerHtml("tr6", ITEM_ORDER_XK, ITEM_LABELS) : ""}
+      ${id === "tr7" ? pickerHtml("tr7", ITEM_ORDER_NK, ITEM_LABELS) : ""}
       <div class="chart" id="${id}"></div>`).join("")}
     <p class="note">
       Nguồn: bảng "Trị giá và mặt hàng xuất/nhập khẩu" và "Kim ngạch XNK phân
@@ -92,7 +113,11 @@ export async function initTrade(root) {
       cộng từng nước. Nhóm hàng và nhóm nước còn lại là cách tự gộp từ ~50-90
       mặt hàng/nước liệt kê riêng - xem
       <code>data/trade/commodity_map_xls.csv</code> và
-      <code>country_map_xls.csv</code> để đổi cách gộp.
+      <code>country_map_xls.csv</code> để đổi cách gộp. Chart 6/7 lấy thẳng
+      từ dòng mặt hàng gốc (không qua gộp nhóm) cho một số mặt hàng owner
+      quan tâm; mặt hàng nào không có dòng riêng ở chiều xuất hoặc nhập thì
+      không xuất hiện ở chart đó - xem danh sách trong
+      <code>scraper/trade/build_xls.py</code> (<code>WATCH_ITEMS</code>).
     </p>
   `;
 
@@ -162,9 +187,37 @@ export async function initTrade(root) {
     stacked("tr3", commodityImport, COMMODITY_ORDER_NK, COMMODITY_LABELS, "tr3");
     stacked("tr4", countryExport, COUNTRY_ORDER_XK, COUNTRY_LABELS, "tr4");
     stacked("tr5", countryImport, COUNTRY_ORDER_NK, COUNTRY_LABELS, "tr5");
+
+    // Chart 6/7 - mặt hàng chủ lực chênh lệch quy mô rất lớn (máy vi tính
+    // ~12 tỷ USD/tháng so với than ~30 triệu), nên vẽ đường riêng từng mặt
+    // hàng thay vì cột chồng - chồng cột sẽ làm mặt hàng nhỏ biến mất.
+    const lines = (id, data, order, labels, prefix) => {
+      const picked = new Set([...root.querySelectorAll(`.${prefix}-group:checked`)]
+        .map((cb) => cb.value));
+      const rows = data.rows.filter((r) => picked.has(r.group)
+        && (!year || r.month.startsWith(year)));
+      const byKey = new Map(rows.map((r) => [`${r.month}|${r.group}`, r.usd]));
+      const groups = order.filter((g) => picked.has(g));
+      csvData[id] = rows;
+      chart(id).setOption({
+        tooltip: { trigger: "axis", valueFormatter: (v) => `${v.toFixed(2)} ${unitLabel}` },
+        legend: {}, grid: { left: 70, right: 20 },
+        xAxis: { type: "category", data: shownMonths },
+        yAxis: { type: "value", name: unitLabel },
+        series: groups.map((g) => ({
+          name: labels[g], type: "line",
+          data: shownMonths.map((m) => {
+            const v = byKey.get(`${m}|${g}`);
+            return v === undefined ? null : +(v / div).toFixed(2);
+          }),
+        })),
+      }, true);
+    };
+    lines("tr6", itemExport, ITEM_ORDER_XK, ITEM_LABELS, "tr6");
+    lines("tr7", itemImport, ITEM_ORDER_NK, ITEM_LABELS, "tr7");
   }
 
-  for (const prefix of ["tr2", "tr3", "tr4", "tr5"]) {
+  for (const prefix of ["tr2", "tr3", "tr4", "tr5", "tr6", "tr7"]) {
     const boxes = () => [...root.querySelectorAll(`.${prefix}-group`)];
     boxes().forEach((cb) => cb.addEventListener("change", draw));
     document.getElementById(`${prefix}-all`).addEventListener("click", () => {

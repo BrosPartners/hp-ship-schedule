@@ -11,7 +11,9 @@ def _write_maps(tmp_path):
         "ten_file,nhom_xk,nhom_nk\n"
         "Hàng thủy sản,nong_nghiep,\n"
         "Hàng hóa khác,khac,khac\n"
-        "Ngô,,khac\n", encoding="utf-8")
+        "Ngô,,khac\n"
+        "Than đá,khac,khac\n"
+        "Dược phẩm,,che_bien_che_tao\n", encoding="utf-8")
     country = tmp_path / "country_map_xls.csv"
     country.write_text(
         "ten_file,nhom_xk,nhom_nk\n"
@@ -61,6 +63,44 @@ def test_build_all_aggregates_by_group(tmp_path, monkeypatch):
 
     cx = json.loads(open(written["country_export"], encoding="utf-8").read())
     assert cx["rows"] == [{"month": "2024-01", "group": "eu", "usd": 700}]
+
+
+def test_build_all_writes_item_watchlist(tmp_path, monkeypatch):
+    from scraper.trade import build_xls as mod
+
+    commodity, country = _write_maps(tmp_path)
+    monkeypatch.setattr(mod, "OUT_DIR", tmp_path / "agg")
+    monkeypatch.setattr(mod, "_latest",
+                        lambda xls_dir, prefix: tmp_path / f"{prefix}.xls")
+    monkeypatch.setattr(mod, "_sheet_name", lambda path, want_data=True: "S")
+
+    def fake_commodity(path, sheet, flow):
+        if flow == "export":
+            return [{"month": "2024-01", "flow": "export",
+                     "commodity": "Hàng thủy sản", "usd_month": 300},
+                    {"month": "2024-01", "flow": "export",
+                     "commodity": "Than đá", "usd_month": 50}]
+        return [{"month": "2024-01", "flow": "import",
+                 "commodity": "Ngô", "usd_month": 500},
+                {"month": "2024-01", "flow": "import",
+                 "commodity": "Dược phẩm", "usd_month": 80}]
+
+    def fake_country(path, sheet):
+        return [
+            {"month": "2024-01", "flow": "export", "country": "EU", "usd_month": 700},
+            {"month": "2024-01", "flow": "import", "country": "Mỹ", "usd_month": 900},
+        ]
+
+    monkeypatch.setattr(mod, "parse_commodity_xls", fake_commodity)
+    monkeypatch.setattr(mod, "parse_country_xls", fake_country)
+
+    written = build_all(tmp_path / "xls", commodity, country)
+
+    ie = json.loads(open(written["commodity_items_export"], encoding="utf-8").read())
+    assert ie["rows"] == [{"month": "2024-01", "group": "than", "usd": 50}]
+
+    ii = json.loads(open(written["commodity_items_import"], encoding="utf-8").read())
+    assert ii["rows"] == [{"month": "2024-01", "group": "duoc_pham", "usd": 80}]
 
 
 def test_unmapped_commodity_raises(tmp_path, monkeypatch):

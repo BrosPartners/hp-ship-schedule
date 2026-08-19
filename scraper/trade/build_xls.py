@@ -29,6 +29,31 @@ COMMODITY_MAP = ROOT / "data" / "trade" / "commodity_map_xls.csv"
 COUNTRY_MAP = ROOT / "data" / "trade" / "country_map_xls.csv"
 OUT_DIR = ROOT / "data" / "trade" / "agg"
 
+# Một số mặt hàng owner muốn xem riêng lẻ thay vì chỉ ở mức nhóm (chart 2/3).
+# Tên xuất/nhập không phải lúc nào cũng khớp nhau chữ-với-chữ dù cùng một mặt
+# hàng thực tế - ví dụ file xuất khẩu ghi "linh liện" (lỗi đánh máy của nguồn,
+# không phải "linh kiện"), và "Giấy các loại" (NK) với "Giấy và các sản phẩm
+# từ giấy" (XK) là hai định nghĩa khác nhau của nguồn, không phải cùng một
+# dòng. `None` nghĩa là mặt hàng đó không có dòng riêng ở file đó (ví dụ Việt
+# Nam không xuất khẩu khí đốt hoá lỏng hay dược phẩm với tư cách mặt hàng
+# riêng trong bảng này).
+WATCH_ITEMS = {
+    "than": {"export": "Than đá", "import": "Than đá"},
+    "dau_tho": {"export": "Dầu thô", "import": "Dầu thô"},
+    "xang_dau": {"export": "Xăng dầu các loại", "import": "Xăng dầu các loại"},
+    "khi_dot_hoa_long": {"export": None, "import": "Khí đốt hóa lỏng"},
+    "giay": {"export": "Giấy và các sản phẩm từ giấy", "import": "Giấy các loại"},
+    "may_vi_tinh_dien_tu": {
+        "export": "Máy vi tính, sản phẩm điện tử & linh liện",
+        "import": "Máy vi tính, sản phẩm điện tử & linh kiện",
+    },
+    "dien_thoai": {"export": "Điện thoại các loại và linh kiện",
+                   "import": "Điện thoại các loại và linh kiện"},
+    "dien_gia_dung": {"export": "Hàng điện gia dụng và linh kiện",
+                      "import": "Hàng điện gia dụng và linh kiện"},
+    "duoc_pham": {"export": None, "import": "Dược phẩm"},
+}
+
 
 class NoFileError(Exception):
     """Không tìm thấy file loại nào đó (Xuất khẩu/Nhập khẩu/V03) trong thư mục."""
@@ -127,6 +152,22 @@ def build_all(xls_dir=None, commodity_map_path=None, country_map_path=None):
                 continue
             agg[(c["month"], gmap_flow[c["country"]])] += c["usd_month"]
         written[f"country_{flow}"] = _write(f"country_{flow}", {
+            "rows": [{"month": m, "group": g, "usd": v}
+                     for (m, g), v in sorted(agg.items())]
+        })
+
+    # Chart 6/7 - một số mặt hàng chủ lực xem riêng lẻ (không gộp nhóm).
+    for flow in ("export", "import"):
+        name_to_key = {v[flow]: k for k, v in WATCH_ITEMS.items() if v[flow]}
+        agg = defaultdict(int)
+        for c in commodities:
+            if c["flow"] != flow:
+                continue
+            key = name_to_key.get(c["commodity"])
+            if key is None:
+                continue
+            agg[(c["month"], key)] += c["usd_month"]
+        written[f"commodity_items_{flow}"] = _write(f"commodity_items_{flow}", {
             "rows": [{"month": m, "group": g, "usd": v}
                      for (m, g), v in sorted(agg.items())]
         })
