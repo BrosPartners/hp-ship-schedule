@@ -149,10 +149,34 @@ def load_berth_map(path):
     return mapping
 
 
+# Tên cảng nước ngoài trong lịch tàu hay đi kèm cảng cụ thể theo đủ kiểu dấu
+# phân cách: "SHEKOU,CHINA", "NINGBO - CHINA", "BUSAN-KOREA",
+# "PALEMBANG-SUMATRA, INDONESIA". Liệt kê tay từng biến thể là cuộc đua không
+# hồi kết (đã đếm được 87 biến thể chỉ trong lịch sử hiện có), nên tách phần
+# đuôi sau dấu phân cách cuối và chỉ nhận khi đuôi đó TRÙNG KHỚP HOÀN TOÀN một
+# mục nước ngoài đã khai trong berth_map. Khớp chính xác chứ không "chứa" là
+# có chủ ý: "CANG GO DAU (P.THAI)" là cảng Gò Dầu trong nước, nếu dùng luật
+# "chứa THAI" sẽ bị gán nhầm thành Thái Lan.
+_FOREIGN_SEPARATORS = (",", " - ", "-")
+
+
 def _lookup(berth_map, raw):
     if not raw:
         return None
-    return berth_map.get(str(raw).strip().upper())
+    key = str(raw).strip().upper()
+    hit = berth_map.get(key)
+    if hit is not None:
+        return hit
+    for sep in _FOREIGN_SEPARATORS:
+        if sep not in key:
+            continue
+        tail = key.rsplit(sep, 1)[-1].strip()
+        tail_hit = berth_map.get(tail)
+        # Chỉ suy ra cho mục nước ngoài; không để một bến trong nước bị suy ra
+        # từ phần đuôi tên của bến khác.
+        if tail_hit is not None and tail_hit["type"] == "foreign":
+            return tail_hit
+    return None
 
 
 def apply_berth_map(records, berth_map):

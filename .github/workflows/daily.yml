@@ -49,6 +49,12 @@ jobs:
         if: always()
         run: python -m scraper.vpa.build
 
+      # Tuyến quốc tế chỉ có ở Hải Phòng (nguồn TP.HCM không công bố cảng
+      # đi/đến), và đọc thẳng Parquet nên không phụ thuộc bước VPA/bản đồ.
+      - name: Rebuild route flows (Hai Phong)
+        if: always()
+        run: python -m scraper.route_flows
+
       # Depends on both teu.json and berth_share.json, so it runs last.
       - name: Rebuild map points
         if: always()
