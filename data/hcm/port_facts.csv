@@ -12,7 +12,7 @@ SSIT,,10.50583,107.00500,cangvu_api,,,,cai_mep,Toạ độ cầu cảng thật (
 SITV,,10.59839,107.02268,cangvu_api,,,,cai_mep,Toạ độ cầu cảng thật (API Cảng vụ TP.HCM - khớp đúng raw_name trong berth_map)
 SP-PSA,,10.56777,107.02232,osm,,,,cai_mep,
 Tong hop Thi Vai,,10.57226,107.02594,osm,,,,cai_mep,
-Xi mang Thi Vai,,10.57500,107.02700,uoc_luong,,,,cai_mep,"CHƯA SỬA - nghi cluster gán sai: raw_name duy nhất ""XMTL 1"" khớp API ra ""BẾN CẢNG XI MĂNG THĂNG LONG"" ở Nhà Bè (10.65,106.74; khuvucsong=Sông Soài Rạp), không phải Thị Vải. Có thể berth_map.csv đang nhầm Xi Măng Thăng Long thành Xi Măng Thị Vải - cần xác nhận trước khi đổi, vì đổi cluster sẽ ảnh hưởng cluster_share.json"
+Xi mang Thang Long,,10.65357,106.74007,cangvu_api,,,,song_sai_gon,"Đổi tên từ ""Xi mang Thi Vai"" (2026-08-19): cluster cũ gán sai tên/vị trí - hai raw_name XMTL 1/2 khớp chính xác API ra ""BẾN CẢNG XI MĂNG THĂNG LONG"" tại Nhà Bè (khuvucsong=Sông Soài Rạp), không liên quan gì Thị Vải/Cái Mép. Toạ độ = trung bình 2 phao XMTL 1/2 khớp API. Đã đổi zone cai_mep -> song_sai_gon cho khớp vị trí thật"
 Phu My,,10.53140,107.05404,cangvu_api,,,,cai_mep,"Trung bình cả 10 raw_name của cụm khớp API (NM thép Phú Mỹ, PTSC Phú Mỹ, HĐ 129, XMCP, Posco, Posco Yamato Vina, PTSC Cù Lao Tào) - vẫn là điểm đại diện cho một cụm trải rộng, không phải một bến đơn"
 Baria Serece,,10.58675,107.02782,cangvu_api,,,,cai_mep,Toạ độ cầu cảng thật (API Cảng vụ TP.HCM - khớp đúng raw_name trong berth_map)
 QT Thi Vai,,10.59270,107.03000,osm,,,,cai_mep,
