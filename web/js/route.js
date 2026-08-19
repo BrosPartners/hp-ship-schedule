@@ -62,6 +62,11 @@ function arcPoints(to, bend = 0.22, steps = 48) {
 
 const fmt = (v) => Math.round(v).toLocaleString("vi-VN");
 
+// Mẫu gạch màu cho chú giải - dùng gạch chứ không dùng ô vuông để khớp đúng
+// thứ nó đại diện trên bản đồ (cung nối), đỡ phải đoán.
+const swatch = (c) => `<span style="display:inline-block;width:22px;height:4px;
+  background:${c};border-radius:2px;vertical-align:3px;margin-right:5px"></span>`;
+
 export async function initRoute(root) {
   root.innerHTML = `<p>Đang tải dữ liệu tuyến…</p>`;
   const [L, data] = await Promise.all([
@@ -99,6 +104,7 @@ export async function initRoute(root) {
       <button type="button" id="rt-berths">Chỉ bến (bỏ khu neo)</button>
     </div>
     <div id="rt-map" class="chart" style="height:520px"></div>
+    <p class="note" id="rt-legend"></p>
     <div class="chart-head"><h3>Xếp hạng tuyến</h3>
       <span><button id="rt-csv">Tải data</button></span></div>
     <div id="rt-table"></div>
@@ -109,6 +115,9 @@ export async function initRoute(root) {
       lẫn khu neo (Hòn Dấu, Vật Cách, Thượng Lý, Nam Cát Bà): tàu quốc tế vào
       thẳng khu neo là lượt quốc tế thật, bỏ đi sẽ hụt ~1.200 lượt và làm lệch
       hồ sơ tuyến của hàng rời/hàng lỏng.
+      <br><b>Màu cung</b> so sánh hai chiều của cùng một tuyến: xanh khi tàu
+      đến Hải Phòng nhiều hơn tàu rời, đỏ khi ngược lại. Đây là so sánh
+      <i>tương đối trong từng tuyến</i>, không phải phân loại tuyến một chiều.
       <br><b>Chấm nước đặt ở cảng cửa ngõ chính</b> (Trung Quốc lấy điểm giữa
       bờ biển vì lưu lượng trải từ Quảng Tây tới Thượng Hải), không phải tâm
       địa lý - xem <code>data/country_points.csv</code>. Cung chỉ là đường nối
@@ -148,6 +157,22 @@ export async function initRoute(root) {
 
     const max = rank.length ? rank[0].total : 1;
     const unit = metric === "calls" ? "lượt" : "DWT";
+
+    // Khi đang lọc một chiều thì mọi cung cùng màu, nên nói thẳng điều đó
+    // thay vì vẫn hiện chú giải hai màu khiến người đọc đi tìm màu không có.
+    const scale = `Độ dày cung và cỡ chấm = quy mô tuyến (lớn nhất:
+      <b>${fmt(max)} ${unit}</b>).`;
+    document.getElementById("rt-legend").innerHTML = dir === "both"
+      ? `${swatch(IN_COLOR)}<b>Xanh - tuyến thiên chiều về:</b> tàu <i>đến</i>
+         Hải Phòng nhiều hơn tàu rời. &nbsp;
+         ${swatch(OUT_COLOR)}<b>Đỏ - tuyến thiên chiều đi:</b> tàu <i>rời</i>
+         Hải Phòng nhiều hơn tàu đến.<br>
+         Màu chỉ cho biết tuyến <b>nghiêng về chiều nào</b>, không phải chiều
+         duy nhất - hầu hết tuyến đều chạy cả hai chiều, bấm vào cung để xem
+         số từng chiều. ${scale}`
+      : `${swatch(dir === "in" ? IN_COLOR : OUT_COLOR)}Đang lọc riêng
+         <b>${dir === "in" ? "tàu đến Hải Phòng" : "tàu rời Hải Phòng"}</b>
+         nên mọi tuyến cùng một màu. ${scale}`;
 
     for (const d of rank) {
       const p = points[d.country];
