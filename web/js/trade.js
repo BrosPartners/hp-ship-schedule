@@ -75,35 +75,53 @@ function fmtVal(v, div) {
   return v === null || v === undefined ? "—" : (v / div).toFixed(2);
 }
 
-// Ba mốc tháng dùng cho bảng tăng trưởng: lấy từ chính tập tháng của dữ liệu
-// đang xét (không dùng `months` chung của chart 1), vì mỗi file agg có thể
-// phủ khác nhau đôi chút - an toàn hơn là giả định tất cả trùng khớp. Bảng cố
-// tình KHÔNG theo bộ lọc "Kỳ" ở trên: luôn so tháng mới nhất thật với tháng
-// liền trước và cùng kỳ năm ngoái, để %YoY không bị mất khi ai đó lọc "Kỳ" về
-// một năm đơn lẻ (lọc theo năm sẽ cắt luôn dữ liệu năm trước, hết cái để so).
-function refMonths(monthsUniq) {
-  const n = monthsUniq.length;
-  return {
-    latest: monthsUniq[n - 1],
-    mom: n >= 2 ? monthsUniq[n - 2] : null,
-    yoy: n >= 13 ? monthsUniq[n - 13] : null,
-  };
-}
+// Bảng tăng trưởng liệt kê MỌI tháng (không chỉ tháng mới nhất) - mỗi tháng
+// một khối "Nhóm x Giá trị/%MoM/%YoY" (cộng dòng Tổng nếu có >1 nhóm và
+// truyền totalLabel). %MoM/%YoY của một tháng luôn so với tháng liền trước/
+// cùng kỳ năm ngoái lấy từ TOÀN BỘ lịch sử tháng của nhóm đó (`rows`), không
+// phải từ danh sách tháng đang hiển thị theo bộ lọc "Kỳ" - nếu không, lọc về
+// một năm đơn lẻ sẽ làm mất luôn tháng liền trước/cùng kỳ để so.
+function groupGrowthHtml(id, rows, groups, labels, shownMonths, div, unitLabel, totalLabel) {
+  if (!groups.length) return `<p class="note">Chưa chọn nhóm nào để tính tăng trưởng.</p>`;
+  const monthsFull = [...new Set(rows.map((r) => r.month))].sort();
+  const monthIdx = new Map(monthsFull.map((m, i) => [m, i]));
+  const byKey = new Map(rows.map((r) => [`${r.month}|${r.group}`, r.usd]));
+  const val = (g, m) => (m ? byKey.get(`${m}|${g}`) : undefined);
+  const shownSet = new Set(shownMonths);
+  const monthsShown = monthsFull.filter((m) => shownSet.has(m)).slice().reverse();
 
-function growthTableHtml(id, rows, div, unitLabel, isGroupTable) {
+  const lines = [];
+  for (const m of monthsShown) {
+    const i = monthIdx.get(m);
+    const prevM = i >= 1 ? monthsFull[i - 1] : null;
+    const yoyM = i >= 12 ? monthsFull[i - 12] : null;
+    for (const g of groups) {
+      lines.push({
+        month: m, label: labels[g], value: val(g, m),
+        mom: pct(val(g, m), val(g, prevM)), yoy: pct(val(g, m), val(g, yoyM)),
+      });
+    }
+    if (totalLabel && groups.length > 1) {
+      const sum = (mm) => (mm ? groups.reduce((s, g) => s + (val(g, mm) ?? 0), 0) : null);
+      const cur = sum(m);
+      lines.push({ month: m, label: totalLabel, value: cur, isTotal: true,
+                   mom: pct(cur, sum(prevM)), yoy: pct(cur, sum(yoyM)) });
+    }
+  }
   return `
-    <table class="grid growth-table" id="${id}">
-      <thead><tr><th>${isGroupTable ? "Nhóm" : "Chỉ tiêu"}</th>
+    <div class="growth-table-wrap"><table class="grid growth-table" id="${id}-growth-table">
+      <thead><tr><th>Tháng</th><th>${groups.length > 1 || totalLabel ? "Nhóm" : "Chỉ tiêu"}</th>
         <th class="num">Giá trị (${unitLabel})</th>
         <th class="num">%MoM (so tháng trước)</th>
         <th class="num">%YoY (so cùng kỳ năm trước)</th></tr></thead>
-      <tbody>${rows.map((r) => `<tr${r.isTotal ? ' class="total"' : ""}>
+      <tbody>${lines.map((r) => `<tr${r.isTotal ? ' class="total"' : ""}>
+        <td>${r.month}</td>
         <td>${r.label}</td>
         <td class="num">${fmtVal(r.value, div)}</td>
         <td class="num">${fmtPct(r.mom)}</td>
         <td class="num">${fmtPct(r.yoy)}</td>
       </tr>`).join("")}</tbody>
-    </table>`;
+    </table></div>`;
 }
 
 function pickerHtml(prefix, groups, labels) {
@@ -208,47 +226,27 @@ export async function initTrade(root) {
     }, true);
 
     {
-      const allMonths = monthly.rows.map((r) => r.month);
-      const { latest, mom, yoy: yoyMonth } = refMonths(allMonths);
-      const byMonth = new Map(monthly.rows.map((r) => [r.month, r]));
-      const rows1g = ["export", "import"].map((key) => ({
-        label: key === "export" ? "Xuất khẩu" : "Nhập khẩu",
-        value: byMonth.get(latest)?.[key],
-        mom: pct(byMonth.get(latest)?.[key], mom && byMonth.get(mom)?.[key]),
-        yoy: pct(byMonth.get(latest)?.[key], yoyMonth && byMonth.get(yoyMonth)?.[key]),
-      }));
-      document.getElementById("tr1-growth").innerHTML =
-        `<p class="note" style="margin-top:6px">Tăng trưởng tháng <b>${latest}</b>
-         so tháng <b>${mom ?? "—"}</b> (MoM) và tháng <b>${yoyMonth ?? "—"}</b> (YoY):</p>`
-        + growthTableHtml("tr1-growth-table", rows1g, div, unitLabel);
+      // Chart 1 không có "Tổng" (Xuất+Nhập cộng lại không có ý nghĩa kinh tế
+      // rõ ràng như cán cân thương mại), nên gọi groupGrowthHtml không kèm
+      // totalLabel. Chuyển monthly.rows (một dòng/tháng, 2 cột export/import)
+      // sang dạng "dài" (một dòng/tháng/nhóm) để dùng chung hàm với chart 2-7.
+      const longRows = monthly.rows.flatMap((r) => [
+        { month: r.month, group: "export", usd: r.export },
+        { month: r.month, group: "import", usd: r.import },
+      ]);
+      document.getElementById("tr1-growth").innerHTML = groupGrowthHtml(
+        "tr1", longRows, ["export", "import"],
+        { export: "Xuất khẩu", import: "Nhập khẩu" }, shownMonths, div, unitLabel, null);
     }
 
-    // Bảng tăng trưởng dùng chung cho chart 2-7: luôn tính trên TOÀN BỘ
-    // data.rows (chỉ lọc theo nhóm đang tick, KHÔNG lọc theo "Kỳ") - lý do
-    // giống chart 1, xem ghi chú ở refMonths().
+    // Bảng tăng trưởng dùng chung cho chart 2-7: luôn tính MoM/YoY trên TOÀN
+    // BỘ lịch sử tháng của data.rows (chỉ lọc theo nhóm đang tick, KHÔNG lọc
+    // theo "Kỳ" khi so sánh) - xem ghi chú ở groupGrowthHtml(). Hàng hiển thị
+    // vẫn theo `shownMonths` (tôn trọng bộ lọc "Kỳ").
     const renderGrowthTable = (id, data, groups, labels, totalLabel) => {
       const rows = data.rows.filter((r) => groups.includes(r.group));
-      const monthsUniq = [...new Set(rows.map((r) => r.month))].sort();
-      const { latest, mom, yoy: yoyMonth } = refMonths(monthsUniq);
-      const byKey = new Map(rows.map((r) => [`${r.month}|${r.group}`, r.usd]));
-      const val = (g, m) => (m ? byKey.get(`${m}|${g}`) : undefined);
-      const items = groups.map((g) => ({
-        label: labels[g], value: val(g, latest),
-        mom: pct(val(g, latest), val(g, mom)), yoy: pct(val(g, latest), val(g, yoyMonth)),
-      }));
-      const sum = (m) => (m
-        ? groups.reduce((s, g) => s + (val(g, m) ?? 0), 0) : null);
-      const totalCur = sum(latest), totalMom = sum(mom), totalYoy = sum(yoyMonth);
-      const rowsOut = groups.length > 1
-        ? [...items, { label: totalLabel, value: totalCur, isTotal: true,
-                       mom: pct(totalCur, totalMom), yoy: pct(totalCur, totalYoy) }]
-        : items;
-      const el = document.getElementById(`${id}-growth`);
-      el.innerHTML = latest
-        ? `<p class="note" style="margin-top:6px">Tăng trưởng tháng <b>${latest}</b>
-           so tháng <b>${mom ?? "—"}</b> (MoM) và tháng <b>${yoyMonth ?? "—"}</b> (YoY):</p>`
-          + growthTableHtml(`${id}-growth-table`, rowsOut, div, unitLabel, true)
-        : `<p class="note">Chưa chọn nhóm nào để tính tăng trưởng.</p>`;
+      document.getElementById(`${id}-growth`).innerHTML =
+        groupGrowthHtml(id, rows, groups, labels, shownMonths, div, unitLabel, totalLabel);
     };
 
     // Chart 2-5: bốn chart cùng một khuôn - cột chồng theo nhóm, lọc bằng

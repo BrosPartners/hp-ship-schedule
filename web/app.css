@@ -47,8 +47,12 @@ table.grid th { position: sticky; top: 0; background: #dce7ed;
 table.grid td { padding: 5px 8px; border-top: 1px solid var(--line);
                 white-space: nowrap; }
 .num { text-align: right; font-variant-numeric: tabular-nums; }
-/* Bảng %MoM/%YoY dưới các chart tab Xuất nhập khẩu VN. */
-.growth-table { max-width: 46em; margin-bottom: 22px; }
+/* Bảng %MoM/%YoY dưới các chart tab Xuất nhập khẩu VN - liệt kê mọi tháng nên
+   có thể dài, bọc trong khung cuộn cố định chiều cao, giữ header dính lại. */
+.growth-table-wrap { max-width: 46em; max-height: 340px; overflow-y: auto;
+                     margin-bottom: 22px; border: 1px solid var(--line);
+                     border-radius: 6px; }
+.growth-table { width: 100%; margin-bottom: 0; }
 .growth-table .pos { color: #1a7f37; }
 .growth-table .neg { color: #cf222e; }
 .growth-table tr.total td { font-weight: 600; border-top: 2px solid var(--line); }
