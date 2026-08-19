@@ -53,6 +53,7 @@ const PORTS = {
 const GEO_LABELS = {
   osm: "OpenStreetMap", uoc_luong: "ước lượng - cần chỉnh",
   google_maps: "Google Maps (bạn dán link)", sua_tay: "kéo tay trên bản đồ",
+  cangvu_api: "API Cảng vụ TP.HCM (cầu/phao chính thức)",
 };
 // Thang màu: xanh (rẻ / rảnh) → đỏ (đắt / kín). Cùng hướng cho cả hai chỉ
 // tiêu nên đọc bản đồ không phải đổi não giữa hai chế độ.
