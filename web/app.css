@@ -47,15 +47,30 @@ table.grid th { position: sticky; top: 0; background: #dce7ed;
 table.grid td { padding: 5px 8px; border-top: 1px solid var(--line);
                 white-space: nowrap; }
 .num { text-align: right; font-variant-numeric: tabular-nums; }
-/* Bảng %MoM/%YoY dưới các chart tab Xuất nhập khẩu VN - liệt kê mọi tháng nên
-   có thể dài, bọc trong khung cuộn cố định chiều cao, giữ header dính lại. */
-.growth-table-wrap { max-width: 46em; max-height: 340px; overflow-y: auto;
-                     margin-bottom: 22px; border: 1px solid var(--line);
+/* Bảng %MoM/%YoY dưới các chart tab Xuất nhập khẩu VN - nằm NGANG (cột là
+   tháng, hàng là "Nhóm - Giá trị/%MoM/%YoY") nên rộng hơn cao, bọc trong
+   khung cuộn ngang, cột đầu (tên hàng) dính lại khi cuộn. */
+.growth-table-wrap { margin-bottom: 22px; border: 1px solid var(--line);
                      border-radius: 6px; }
-.growth-table { width: 100%; margin-bottom: 0; }
+.growth-table-wrap-h { max-width: 100%; overflow-x: auto; max-height: 60vh;
+                       overflow-y: auto; }
+.growth-table { width: max-content; min-width: 100%; margin-bottom: 0; }
+.growth-table-h th:first-child, .growth-table-h td:first-child {
+  position: sticky; left: 0; background: #fff; white-space: nowrap;
+  box-shadow: 1px 0 0 var(--line);
+}
+.growth-table-h th:first-child { z-index: 2; background: #dce7ed; }
 .growth-table .pos { color: #1a7f37; }
 .growth-table .neg { color: #cf222e; }
 .growth-table tr.total td { font-weight: 600; border-top: 2px solid var(--line); }
+/* Nút lọc theo nhóm ngay trên bảng tăng trưởng - bấm để ẩn/hiện 3 hàng của
+   nhóm đó, không đụng tới bộ chọn nhóm chính của biểu đồ phía trên. */
+.growth-filter { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px; }
+.growth-filter-btn { font-size: 12px; padding: 4px 10px; border-radius: 999px;
+                     border: 1px solid var(--line); background: #eef4f9;
+                     color: var(--muted); cursor: pointer; }
+.growth-filter-btn.active { background: var(--accent); color: #fff;
+                            border-color: var(--accent); }
 /* Tab Bản đồ */
 .map { height: 68vh; min-height: 420px; border: 1px solid var(--line);
        border-radius: 6px; }

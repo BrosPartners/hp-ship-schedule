@@ -75,53 +75,69 @@ function fmtVal(v, div) {
   return v === null || v === undefined ? "—" : (v / div).toFixed(2);
 }
 
-// Bảng tăng trưởng liệt kê MỌI tháng (không chỉ tháng mới nhất) - mỗi tháng
-// một khối "Nhóm x Giá trị/%MoM/%YoY" (cộng dòng Tổng nếu có >1 nhóm và
-// truyền totalLabel). %MoM/%YoY của một tháng luôn so với tháng liền trước/
-// cùng kỳ năm ngoái lấy từ TOÀN BỘ lịch sử tháng của nhóm đó (`rows`), không
-// phải từ danh sách tháng đang hiển thị theo bộ lọc "Kỳ" - nếu không, lọc về
-// một năm đơn lẻ sẽ làm mất luôn tháng liền trước/cùng kỳ để so.
-function groupGrowthHtml(id, rows, groups, labels, shownMonths, div, unitLabel, totalLabel) {
+// Bảng tăng trưởng nằm NGANG: cột là tháng (theo đúng thứ tự trục hoành của
+// chart phía trên), hàng là "Nhóm — Giá trị/%MoM/%YoY". %MoM/%YoY của một
+// tháng luôn so với tháng liền trước/cùng kỳ năm ngoái lấy từ TOÀN BỘ lịch sử
+// tháng của nhóm đó (`rows`), không phải từ danh sách tháng đang hiển thị
+// theo bộ lọc "Kỳ" - nếu không, lọc về một năm đơn lẻ sẽ làm mất luôn tháng
+// liền trước/cùng kỳ để so. Có >1 nhóm thì thêm nút bấm lọc từng nhóm ngay
+// trên bảng (ẩn/hiện 3 hàng của nhóm đó bằng data-group, không tính lại).
+function horizontalGrowthHtml(id, rows, groups, labels, shownMonths, div, unitLabel) {
   if (!groups.length) return `<p class="note">Chưa chọn nhóm nào để tính tăng trưởng.</p>`;
   const monthsFull = [...new Set(rows.map((r) => r.month))].sort();
   const monthIdx = new Map(monthsFull.map((m, i) => [m, i]));
   const byKey = new Map(rows.map((r) => [`${r.month}|${r.group}`, r.usd]));
   const val = (g, m) => (m ? byKey.get(`${m}|${g}`) : undefined);
-  const shownSet = new Set(shownMonths);
-  const monthsShown = monthsFull.filter((m) => shownSet.has(m)).slice().reverse();
 
-  const lines = [];
-  for (const m of monthsShown) {
-    const i = monthIdx.get(m);
-    const prevM = i >= 1 ? monthsFull[i - 1] : null;
-    const yoyM = i >= 12 ? monthsFull[i - 12] : null;
-    for (const g of groups) {
-      lines.push({
-        month: m, label: labels[g], value: val(g, m),
-        mom: pct(val(g, m), val(g, prevM)), yoy: pct(val(g, m), val(g, yoyM)),
-      });
-    }
-    if (totalLabel && groups.length > 1) {
-      const sum = (mm) => (mm ? groups.reduce((s, g) => s + (val(g, mm) ?? 0), 0) : null);
-      const cur = sum(m);
-      lines.push({ month: m, label: totalLabel, value: cur, isTotal: true,
-                   mom: pct(cur, sum(prevM)), yoy: pct(cur, sum(yoyM)) });
-    }
-  }
+  const bodyRows = groups.flatMap((g) => {
+    const series = shownMonths.map((m) => {
+      const i = monthIdx.get(m);
+      const cur = val(g, m);
+      const prevM = i >= 1 ? monthsFull[i - 1] : null;
+      const yoyM = i >= 12 ? monthsFull[i - 12] : null;
+      return { value: cur, mom: pct(cur, val(g, prevM)), yoy: pct(cur, val(g, yoyM)) };
+    });
+    return [
+      { kind: "value", suffix: `Giá trị (${unitLabel})`,
+        cells: series.map((s) => fmtVal(s.value, div)) },
+      { kind: "mom", suffix: "%MoM (so tháng trước)",
+        cells: series.map((s) => fmtPct(s.mom)) },
+      { kind: "yoy", suffix: "%YoY (so cùng kỳ năm trước)",
+        cells: series.map((s) => fmtPct(s.yoy)) },
+    ].map((row) => ({ ...row, group: g, label: `${labels[g]} — ${row.suffix}` }));
+  });
+
+  const filterHtml = groups.length > 1 ? `<div class="growth-filter">
+    ${groups.map((g) =>
+      `<button type="button" class="growth-filter-btn active" data-group="${g}">${labels[g]}</button>`
+    ).join("")}
+  </div>` : "";
+
   return `
-    <div class="growth-table-wrap"><table class="grid growth-table" id="${id}-growth-table">
-      <thead><tr><th>Tháng</th><th>${groups.length > 1 || totalLabel ? "Nhóm" : "Chỉ tiêu"}</th>
-        <th class="num">Giá trị (${unitLabel})</th>
-        <th class="num">%MoM (so tháng trước)</th>
-        <th class="num">%YoY (so cùng kỳ năm trước)</th></tr></thead>
-      <tbody>${lines.map((r) => `<tr${r.isTotal ? ' class="total"' : ""}>
-        <td>${r.month}</td>
-        <td>${r.label}</td>
-        <td class="num">${fmtVal(r.value, div)}</td>
-        <td class="num">${fmtPct(r.mom)}</td>
-        <td class="num">${fmtPct(r.yoy)}</td>
-      </tr>`).join("")}</tbody>
-    </table></div>`;
+    ${filterHtml}
+    <div class="growth-table-wrap growth-table-wrap-h">
+      <table class="grid growth-table growth-table-h" id="${id}-growth-table">
+        <thead><tr><th>Chỉ tiêu</th>
+          ${shownMonths.map((m) => `<th class="num">${m}</th>`).join("")}</tr></thead>
+        <tbody>${bodyRows.map((r) => `<tr data-group="${r.group}">
+          <td>${r.label}</td>
+          ${r.cells.map((c) => `<td class="num">${c}</td>`).join("")}
+        </tr>`).join("")}</tbody>
+      </table>
+    </div>`;
+}
+
+// Nút lọc nhóm trong bảng nằm ngang chỉ ẩn/hiện hàng bằng CSS, không tính lại
+// bảng - bấm nhanh hơn và giữ nguyên vị trí cuộn ngang/dọc đang xem.
+function wireGrowthFilter(container) {
+  container.querySelectorAll(".growth-filter-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      btn.classList.toggle("active");
+      const show = btn.classList.contains("active");
+      container.querySelectorAll(`tr[data-group="${CSS.escape(btn.dataset.group)}"]`)
+        .forEach((tr) => { tr.style.display = show ? "" : "none"; });
+    });
+  });
 }
 
 function pickerHtml(prefix, groups, labels) {
@@ -226,27 +242,31 @@ export async function initTrade(root) {
     }, true);
 
     {
-      // Chart 1 không có "Tổng" (Xuất+Nhập cộng lại không có ý nghĩa kinh tế
-      // rõ ràng như cán cân thương mại), nên gọi groupGrowthHtml không kèm
-      // totalLabel. Chuyển monthly.rows (một dòng/tháng, 2 cột export/import)
-      // sang dạng "dài" (một dòng/tháng/nhóm) để dùng chung hàm với chart 2-7.
+      // Chuyển monthly.rows (một dòng/tháng, 2 cột export/import) sang dạng
+      // "dài" (một dòng/tháng/nhóm) để dùng chung hàm với chart 2-7. Nút lọc
+      // của bảng này chính là cặp Xuất khẩu/Nhập khẩu.
       const longRows = monthly.rows.flatMap((r) => [
         { month: r.month, group: "export", usd: r.export },
         { month: r.month, group: "import", usd: r.import },
       ]);
-      document.getElementById("tr1-growth").innerHTML = groupGrowthHtml(
+      const el = document.getElementById("tr1-growth");
+      el.innerHTML = horizontalGrowthHtml(
         "tr1", longRows, ["export", "import"],
-        { export: "Xuất khẩu", import: "Nhập khẩu" }, shownMonths, div, unitLabel, null);
+        { export: "Xuất khẩu", import: "Nhập khẩu" }, shownMonths, div, unitLabel);
+      wireGrowthFilter(el);
     }
 
     // Bảng tăng trưởng dùng chung cho chart 2-7: luôn tính MoM/YoY trên TOÀN
     // BỘ lịch sử tháng của data.rows (chỉ lọc theo nhóm đang tick, KHÔNG lọc
-    // theo "Kỳ" khi so sánh) - xem ghi chú ở groupGrowthHtml(). Hàng hiển thị
-    // vẫn theo `shownMonths` (tôn trọng bộ lọc "Kỳ").
-    const renderGrowthTable = (id, data, groups, labels, totalLabel) => {
+    // theo "Kỳ" khi so sánh) - xem ghi chú ở horizontalGrowthHtml(). Cột hiển
+    // thị vẫn theo `shownMonths` (tôn trọng bộ lọc "Kỳ"). `totalLabel` không
+    // còn dùng ở bảng nằm ngang (mỗi nhóm đã có nút lọc riêng để soi từng
+    // nhóm) nhưng vẫn giữ tham số để lời gọi ở dưới không phải sửa lại.
+    const renderGrowthTable = (id, data, groups, labels, _totalLabel) => {
       const rows = data.rows.filter((r) => groups.includes(r.group));
-      document.getElementById(`${id}-growth`).innerHTML =
-        groupGrowthHtml(id, rows, groups, labels, shownMonths, div, unitLabel, totalLabel);
+      const el = document.getElementById(`${id}-growth`);
+      el.innerHTML = horizontalGrowthHtml(id, rows, groups, labels, shownMonths, div, unitLabel);
+      wireGrowthFilter(el);
     };
 
     // Chart 2-5: bốn chart cùng một khuôn - cột chồng theo nhóm, lọc bằng
