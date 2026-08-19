@@ -94,6 +94,11 @@ table.grid td { padding: 5px 8px; border-top: 1px solid var(--line);
 .leaflet-popup-content .note { margin: 6px 0 0; font-size: 12px; }
 .note { margin: -18px 0 26px; font-size: 13px; color: var(--muted, #567);
         max-width: 70em; line-height: 1.5; }
+/* Chú thích mốc cập nhật, đặt ngay dưới thanh lọc chứ không dưới biểu đồ, nên
+   phải huỷ lề âm của .note. Tô nền vàng nhạt vì đây là cảnh báo đọc sai số
+   (tháng cuối chưa đủ ngày), không phải ghi chú nguồn thông thường. */
+.partial-note { margin: 4px 0 18px; padding: 8px 12px; border-radius: 6px;
+                background: #fff8e1; border: 1px solid #f0d98c; color: #6b5510; }
 /* Chart 8's per-berth picker: grouped by zone, wraps on narrow screens. */
 .berth-picker { align-items: flex-start; gap: 14px; margin-bottom: 8px; }
 .berth-picker .zone-group { display: flex; flex-wrap: wrap; gap: 4px 10px;

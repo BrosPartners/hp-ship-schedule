@@ -1,4 +1,4 @@
-import { loadJSON } from "./data.js";
+import { loadJSON, loadManifest, partialMonth } from "./data.js";
 import { initTeu, teuCharts, teuControlsHtml } from "./teu.js";
 
 const ECHARTS =
@@ -25,10 +25,18 @@ const ZONE_ORDER = ["thuong_nguon", "ha_nguon", "lach_huyen", "unmapped"];
 export async function initAnalysis(root) {
   root.innerHTML = `<p>Đang tải số liệu tổng hợp…</p>`;
   const echarts = await import(ECHARTS);
-  const [volume, share, mix, daily, zoneShare, teu] = await Promise.all([
+  const [volume, share, mix, daily, zoneShare, teu, manifest] = await Promise.all([
     loadJSON("monthly_volume"), loadJSON("berth_share"), loadJSON("route_mix"),
     loadJSON("daily_heatmap"), loadJSON("zone_share"), loadJSON("teu"),
+    loadManifest("hp"),
   ]);
+  const partial = partialMonth(manifest.last_plan_date);
+  const partialNote = partial && !partial.complete
+    ? `<p class="note partial-note">⚠ Dữ liệu cập nhật tới <b>${partial.lastDate}</b>.
+       Tháng <b>${partial.monthLabel}</b> mới có ${partial.days}/${partial.daysInMonth}
+       ngày nên <b>chưa đủ tháng</b> - điểm/cột cuối cùng luôn thấp hơn thực tế,
+       đừng đọc thành sụt giảm. Vùng tô xám trên biểu đồ 1 là tháng đó.</p>`
+    : `<p class="note">Dữ liệu cập nhật tới <b>${partial?.lastDate ?? "—"}</b>.</p>`;
 
   root.innerHTML = `
     <div class="filters">
@@ -38,6 +46,7 @@ export async function initAnalysis(root) {
       </select></label>
       <label>Lọc mã CK<select id="a-ticker"><option value="">Tất cả</option></select></label>
     </div>
+    ${partialNote}
     ${CHARTS.map(([id, title]) => `
       <div class="chart-head">
         <h3>${title}</h3>
@@ -135,10 +144,21 @@ export async function initAnalysis(root) {
       xAxis: { type: "category",
                data: Array.from({ length: 12 }, (_, i) => `T${i + 1}`) },
       yAxis: { type: "value" },
-      series: years.map((y) => ({
+      series: years.map((y, si) => ({
         name: y, type: "line", smooth: true,
         data: Array.from({ length: 12 }, (_, i) =>
           byMonth[`${y}-${String(i + 1).padStart(2, "0")}`] ?? null),
+        // Chỉ gắn vùng tô một lần (series đầu) - gắn ở mọi series thì ECharts
+        // vẽ chồng 4 lớp, vùng xám đậm dần lên trông như lỗi.
+        markArea: (si === 0 && partial && !partial.complete) ? {
+          silent: true,
+          itemStyle: { color: "rgba(0,0,0,0.06)" },
+          label: {
+            show: true, position: "insideTop", fontSize: 10, color: "#888",
+            formatter: `chưa đủ tháng\n(${partial.days}/${partial.daysInMonth} ngày)`,
+          },
+          data: [[{ xAxis: partial.axisLabel }, { xAxis: partial.axisLabel }]],
+        } : undefined,
       })),
     }, true);
 

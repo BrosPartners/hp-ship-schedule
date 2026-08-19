@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Lịch tàu cảng biển</title>
+  <title>Dashboard ngành cảng biển</title>
   <link rel="stylesheet" href="./app.css" />
 </head>
 <body>
   <header>
-    <h1 id="title">Lịch tàu cảng Hải Phòng</h1>
+    <h1 id="title">Dashboard ngành cảng biển</h1>
     <div id="freshness" class="badge">đang tải…</div>
   </header>
 
@@ -52,16 +52,16 @@
     // Hai cảng là hai dataset riêng, nên chúng là hai tab cấp một, mỗi cảng có
     // thanh tab con riêng. Tab con của hai cảng không dùng chung id vì chúng
     // đọc hai bộ Parquet khác schema.
+    // Tiêu đề trang giữ nguyên "Dashboard ngành cảng biển" ở mọi tab: nội
+    // dung đã vượt xa một cảng (hai cảng + xuất nhập khẩu + tuyến), và tab
+    // đang chọn đã cho biết đang xem gì nên không cần đổi tiêu đề theo cảng.
     const PORTS = {
-      hp: { title: "Lịch tàu cảng Hải Phòng",
-            tabs: ["lookup", "analysis", "map", "route"], initial: "analysis" },
-      hcm: { title: "Lịch tàu cảng TP.HCM",
-             tabs: ["hcm-lookup", "hcm", "hcm-map", "hcm-route"],
+      hp: { tabs: ["lookup", "analysis", "map", "route"], initial: "analysis" },
+      hcm: { tabs: ["hcm-lookup", "hcm", "hcm-map", "hcm-route"],
              initial: "hcm" },
       // Không phải dữ liệu cảng nên không có thanh tab con - một trang duy
       // nhất, giống cách tab TP.HCM ban đầu trước khi có Bản đồ/Tra cứu.
-      trade: { title: "Xuất nhập khẩu Việt Nam", tabs: ["trade"],
-              initial: "trade" },
+      trade: { tabs: ["trade"], initial: "trade" },
     };
     const HCM_ROUTE_NOTE = `
       <h3>Chưa dựng được tuyến cho TP.HCM</h3>
@@ -117,7 +117,6 @@
       currentPort = port;
       document.querySelectorAll("nav.ports button").forEach((b) =>
         b.classList.toggle("active", b.dataset.port === port));
-      document.getElementById("title").textContent = PORTS[port].title;
       document.getElementById("subtabs-hp").hidden = port !== "hp";
       document.getElementById("subtabs-hcm").hidden = port !== "hcm";
       document.getElementById("freshness").hidden = port === "trade";

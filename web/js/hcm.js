@@ -1,7 +1,7 @@
 // TP.HCM tab. Cùng bộ lọc với tab Hải Phòng (lọc theo khu, chọn từng cụm,
 // chọn kỳ), nhưng chiều phân tích chính là `cluster` chứ không phải bến, và
 // không có chart độ trượt kế hoạch vì nguồn TP.HCM chỉ có một bản kế hoạch.
-import { loadJSONFrom } from "./data.js";
+import { loadJSONFrom, loadManifest, partialMonth } from "./data.js";
 import { initTeu, teuCharts, teuControlsHtml } from "./teu.js";
 
 const ECHARTS =
@@ -39,11 +39,18 @@ function zoneToggles(prefix) {
 export async function initHcm(root) {
   root.innerHTML = `<p>Đang tải số liệu tổng hợp TP.HCM…</p>`;
   const echarts = await import(ECHARTS);
-  const [volume, cluster, coverage, teu, zoneShare] = await Promise.all([
+  const [volume, cluster, coverage, teu, zoneShare, manifest] = await Promise.all([
     loadJSONFrom(AGG, "monthly_volume"), loadJSONFrom(AGG, "cluster_share"),
     loadJSONFrom(AGG, "coverage"), loadJSONFrom(AGG, "teu"),
-    loadJSONFrom(AGG, "zone_share"),
+    loadJSONFrom(AGG, "zone_share"), loadManifest("hcm"),
   ]);
+  const partial = partialMonth(manifest.last_plan_date);
+  const partialNote = partial && !partial.complete
+    ? `<p class="note partial-note">⚠ Dữ liệu cập nhật tới <b>${partial.lastDate}</b>.
+       Tháng <b>${partial.monthLabel}</b> mới có ${partial.days}/${partial.daysInMonth}
+       ngày nên <b>chưa đủ tháng</b> - điểm/cột cuối cùng luôn thấp hơn thực tế,
+       đừng đọc thành sụt giảm. Vùng tô xám trên biểu đồ 1 là tháng đó.</p>`
+    : `<p class="note">Dữ liệu cập nhật tới <b>${partial?.lastDate ?? "—"}</b>.</p>`;
   const zoneOf = new Map(cluster.rows.map((r) => [r.cluster, r.zone]));
 
   root.innerHTML = `
@@ -53,6 +60,7 @@ export async function initHcm(root) {
         <option value="dwt">Tổng DWT</option>
       </select></label>
     </div>
+    ${partialNote}
     ${CHARTS.map(([id, title]) => `
       <div class="chart-head">
         <h3>${title}</h3>
@@ -149,7 +157,18 @@ export async function initHcm(root) {
       yAxis: { type: "value" },
       series: [{ name: metric === "calls" ? "Lượt tàu" : "Tổng DWT",
                  type: "line", smooth: true, areaStyle: {},
-                 data: months.map((m) => byMonth1[m] ?? 0) }],
+                 data: months.map((m) => byMonth1[m] ?? 0),
+                 // Trục X ở đây là "YYYY-MM" (khác chart 1 bên Hải Phòng dùng
+                 // "T1".."T12"), nên mốc vùng tô là chính khoá tháng.
+                 markArea: (partial && !partial.complete) ? {
+                   silent: true,
+                   itemStyle: { color: "rgba(0,0,0,0.06)" },
+                   label: {
+                     show: true, position: "insideTop", fontSize: 10, color: "#888",
+                     formatter: `chưa đủ tháng\n(${partial.days}/${partial.daysInMonth} ngày)`,
+                   },
+                   data: [[{ xAxis: partial.month }, { xAxis: partial.month }]],
+                 } : undefined }],
     }, true);
 
     // Chart 2 - cluster share, 100% stacked area. Lọc theo khu rồi chuẩn hoá

@@ -34,6 +34,27 @@ export async function loadManifest(dataset = "hp") {
   return res.json();
 }
 
+// Tháng cuối cùng của dữ liệu thường mới chạy được vài ngày, nhưng trên biểu
+// đồ nó nằm ngay cạnh các tháng đủ 30-31 ngày nên rất dễ bị đọc thành "sụt
+// mạnh" - đúng cái bẫy owner chỉ ra ở chart 1 (T8/2026 tụt xuống 486 chỉ vì
+// mới có 17/31 ngày). Trả về mô tả để từng tab tự chú thích cho người đọc.
+export function partialMonth(lastPlanDate) {
+  if (!lastPlanDate) return null;
+  const [y, m, d] = String(lastPlanDate).slice(0, 10).split("-").map(Number);
+  if (!y || !m || !d) return null;
+  const daysInMonth = new Date(y, m, 0).getDate();   // ngày 0 = ngày cuối tháng trước
+  const p2 = (n) => String(n).padStart(2, "0");
+  return {
+    month: `${y}-${p2(m)}`,
+    axisLabel: `T${m}`,          // khớp nhãn trục "T1".."T12" của chart 1
+    monthLabel: `T${m}/${y}`,
+    lastDate: `${p2(d)}/${p2(m)}/${y}`,
+    days: d,
+    daysInMonth,
+    complete: d >= daysInMonth,
+  };
+}
+
 function getConnection() {
   if (!connPromise) connPromise = openDuckDB();
   return connPromise;
