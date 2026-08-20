@@ -22,6 +22,70 @@ const ZONE_LABELS = {
 };
 const ZONE_ORDER = ["thuong_nguon", "ha_nguon", "lach_huyen", "unmapped"];
 
+function pct(cur, prev) {
+  if (cur == null || prev == null || !prev) return null;
+  return +((100 * (cur - prev)) / prev).toFixed(1);
+}
+
+function fmtPct(v) {
+  if (v === null || v === undefined) return "—";
+  const cls = v > 0 ? "pos" : v < 0 ? "neg" : "";
+  return `<span class="${cls}">${v > 0 ? "+" : ""}${v}%</span>`;
+}
+
+// Bảng tổng lượt tàu theo tháng + %MoM/%YoY, dưới heatmap (chart 5). `rows`
+// là danh sách {date, calls} đã cộng theo đúng các bến đang chọn. Tháng mới
+// nhất chưa tròn tháng (`partial`) thì so với đúng N ngày đầu của tháng liền
+// trước / cùng kỳ năm ngoái - so full tháng trước với vài ngày của tháng này
+// sẽ luôn ra sụt giảm giả, không phản ánh đúng tốc độ tăng trưởng.
+function monthlyGrowthHtml(rows, partial) {
+  if (!rows.length) return `<p class="note">Không có bến nào được chọn.</p>`;
+  const byDate = new Map(rows.map((r) => [r.date, r.calls]));
+  const monthsUniq = [...new Set(rows.map((r) => r.date.slice(0, 7)))].sort();
+  const sumMonth = (month, maxDay) => {
+    let s = 0;
+    for (const [date, calls] of byDate) {
+      if (!date.startsWith(month)) continue;
+      if (maxDay && Number(date.slice(8, 10)) > maxDay) continue;
+      s += calls;
+    }
+    return s;
+  };
+  const prevMonth = (month) => {
+    const [y, m] = month.split("-").map(Number);
+    const d = new Date(y, m - 2, 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  };
+  const prevYear = (month) => {
+    const [y, m] = month.split("-").map(Number);
+    return `${y - 1}-${String(m).padStart(2, "0")}`;
+  };
+  const rowsOut = monthsUniq.slice().reverse().map((month) => {
+    const isPartial = partial && !partial.complete && month === partial.month;
+    const dayCap = isPartial ? partial.days : null;
+    return {
+      month, partial: isPartial, days: dayCap,
+      total: sumMonth(month, dayCap),
+      mom: pct(sumMonth(month, dayCap), sumMonth(prevMonth(month), dayCap)),
+      yoy: pct(sumMonth(month, dayCap), sumMonth(prevYear(month), dayCap)),
+    };
+  });
+  return `
+    <p class="note" style="margin-top:6px">Tổng lượt tàu theo tháng, %MoM (so tháng
+      trước) và %YoY (so cùng kỳ năm trước). Tháng chưa tròn tháng chỉ so với
+      đúng số ngày tương ứng của tháng/kỳ so sánh (ghi rõ ở cột Tháng).</p>
+    <div class="growth-table-wrap"><table class="grid growth-table" id="c5-growth-table">
+      <thead><tr><th>Tháng</th><th class="num">Tổng lượt tàu</th>
+        <th class="num">%MoM</th><th class="num">%YoY</th></tr></thead>
+      <tbody>${rowsOut.map((r) => `<tr>
+        <td>${r.month}${r.partial ? ` (${r.days} ngày đầu)` : ""}</td>
+        <td class="num">${r.total.toLocaleString("vi-VN")}</td>
+        <td class="num">${fmtPct(r.mom)}</td>
+        <td class="num">${fmtPct(r.yoy)}</td>
+      </tr>`).join("")}</tbody>
+    </table></div>`;
+}
+
 export async function initAnalysis(root) {
   root.innerHTML = `<p>Đang tải số liệu tổng hợp…</p>`;
   const echarts = await import(ECHARTS);
@@ -113,6 +177,7 @@ export async function initAnalysis(root) {
       ${id === "t-vol" ? teuControlsHtml("t") : ""}
       <div class="chart" id="${id}"></div>
       ${id === "c8" ? `<div class="berth-table" id="c8-table"></div>` : ""}
+      ${id === "c5" ? `<div id="c5-growth"></div>` : ""}
       ${id === "t-dwt" ? `<p class="note">
         Nguồn: Hiệp hội Cảng biển Việt Nam (VPA), sản lượng container thông qua
         hằng tháng. ${teu.derived_note} Tháng chưa có số VPA để trống chứ không
@@ -248,6 +313,7 @@ export async function initAnalysis(root) {
     });
     document.getElementById("c5").style.height = `${80 + years.length * 130}px`;
     chart("c5").resize();
+    document.getElementById("c5-growth").innerHTML = monthlyGrowthHtml(daily5, partial);
 
     // Chart 7 - zone share by month, 100% stacked area
     // Zone filter: when a subset of zones is checked, the series renormalize
