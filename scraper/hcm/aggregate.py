@@ -171,6 +171,31 @@ def build_all(parquet_path, out_dir, today=None):
         "rows": [{"date": r.date, "calls": int(r.calls)} for r in daily.itertuples()]
     })
 
+    # Chart tuyến (thay thế) - KHÔNG phải cảng đi/đến thật: nguồn TP.HCM không
+    # công bố cột này (xem HCM_ROUTE_NOTE ở web/index.html). Đây chỉ là cờ tàu
+    # (nationality/flag of convenience) - một tàu treo cờ Panama hay Liberia
+    # tuyệt đại đa số không đi Panama/Liberia, cờ thuận tiện chỉ phản ánh nơi
+    # đăng ký tàu. Vẫn hữu ích để thấy tỷ trọng tàu Việt Nam so với tàu nước
+    # ngoài theo thời gian, nhưng UI phải luôn ghi rõ đây không phải tuyến.
+    # Gộp vài biến thể ghi tên khác nhau của cùng một nước (không đổi ý nghĩa,
+    # chỉ tránh xé lẻ "MARSHALL ISL" và "MARSHALL ISLANDS" thành hai lát khác
+    # nhau của cùng một cờ tàu).
+    NATIONALITY_ALIAS = {
+        "MARSHALL ISL": "MARSHALL ISLANDS",
+        "KOREA (REPUBLIC)": "KOREA",
+    }
+    nat = thr["nationality"].fillna("(không rõ)").replace(NATIONALITY_ALIAS)
+    top_nat = nat.value_counts().head(10).index
+    nat_grouped = nat.where(nat.isin(top_nat), "Khác")
+    nmix = (thr.assign(nationality=nat_grouped.values)
+               .groupby(["month", "nationality"])
+               .agg(calls=("row_key", "count"))
+               .reset_index())
+    written["nationality_mix"] = _write(out_dir, "nationality_mix", {
+        "rows": [{"month": r.month, "nationality": r.nationality, "calls": int(r.calls)}
+                 for r in nmix.itertuples()]
+    })
+
     # Filter options for the UI
     # Chỉ liệt kê cụm còn là bến thương mại. Cụm đã bị đánh `external` (Ba Son)
     # vẫn còn giá trị `cluster` trong Parquet, nên nếu lấy thẳng cột cluster thì

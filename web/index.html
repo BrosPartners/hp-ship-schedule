@@ -63,27 +63,6 @@
       // nhất, giống cách tab TP.HCM ban đầu trước khi có Bản đồ/Tra cứu.
       trade: { tabs: ["trade"], initial: "trade" },
     };
-    const HCM_ROUTE_NOTE = `
-      <h3>Chưa dựng được tuyến cho TP.HCM</h3>
-      <p class="note">
-        Bản đồ tuyến của Hải Phòng dựng được là nhờ lịch tàu Cảng vụ Hải Phòng
-        ghi thẳng tên nước ở đầu đi/đầu đến của mỗi lượt (ví dụ
-        <code>CHINA → NAM DINH VU</code>).
-        <br><br>
-        Bảng lịch tàu của Cảng vụ TP.HCM <b>không có cột cảng đi hay cảng
-        đến</b>. Các cột họ công bố là: tên tàu, quốc tịch, hô hiệu, DWT,
-        chiều dài, mớn nước, loại hàng hoá, <b>vị trí neo đậu</b>, giờ dự kiến,
-        tàu lai, đại lý, tuyến luồng. Toàn bộ 47.396 giá trị vị trí đều là bến
-        trong cảng, không có giá trị nào là tên nước.
-        <br><br>
-        Cột <b>quốc tịch</b> không dùng thay thế được: đó là <i>cờ tàu</i>,
-        không phải điểm đến - Panama 3.777 lượt, Liberia 1.741, Marshall
-        Islands 860, Malta 390, Tanzania 285, Mongolia 190. Đây là cờ thuận
-        tiện; vẽ tuyến từ cờ tàu sẽ ra những "tuyến" không tồn tại.
-        <br><br>
-        Muốn có tab này cho TP.HCM cần một nguồn khác có cảng đi/cảng đến
-        (dữ liệu hãng tàu, khai báo hải quan theo chuyến, hoặc AIS).
-      </p>`;
     const ALL_TABS = Object.values(PORTS).flatMap((p) => p.tabs);
     const loaded = new Set();
     let currentPort = "hp";
@@ -102,9 +81,10 @@
       if (name === "map") (await import("./js/map.js")).initMap(root, "hp");
       if (name === "route") (await import("./js/route.js")).initRoute(root);
       // TP.HCM không có tab tuyến thật: nguồn cảng vụ TP.HCM không công bố
-      // cảng đi/cảng đến. Vẫn giữ nút tab và nói thẳng lý do, thay vì lặng lẽ
-      // không có gì khiến người dùng tưởng quên làm.
-      if (name === "hcm-route") root.innerHTML = HCM_ROUTE_NOTE;
+      // cảng đi/cảng đến (xem ghi chú trong module). Thay vào đó hiện một
+      // chart tỷ trọng cờ tàu, kèm cảnh báo rõ đây không phải tuyến.
+      if (name === "hcm-route")
+        (await import("./js/hcm-route.js")).initHcmRoute(root);
       if (name === "hcm-map")
         (await import("./js/map.js")).initMap(root, "hcm");
       if (name === "hcm") (await import("./js/hcm.js")).initHcm(root);
