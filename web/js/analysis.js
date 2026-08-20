@@ -64,6 +64,17 @@ export async function initAnalysis(root) {
         </span>
       </div>
       <div class="filters berth-picker" id="c1-berths"></div>` : ""}
+      ${id === "c5" ? `
+      <div class="filters" id="c5-controls">
+        <span class="quick">Chọn nhanh:
+          <button type="button" data-c5-zone="lach_huyen">Lạch Huyện</button>
+          <button type="button" data-c5-zone="ha_nguon">Đình Vũ</button>
+          <button type="button" data-c5-zone="thuong_nguon">Sông Cấm</button>
+          <button type="button" id="c5-all">Chọn tất cả</button>
+          <button type="button" id="c5-none">Ẩn tất cả</button>
+        </span>
+      </div>
+      <div class="filters berth-picker" id="c5-berths"></div>` : ""}
       ${id === "c2" ? `
       <div class="filters" id="c2-zone-filters">
         <label><input type="checkbox" class="c2-zone-toggle" value="lach_huyen" checked> Lạch Huyện</label>
@@ -210,9 +221,19 @@ export async function initAnalysis(root) {
       })),
     });
 
-    // Chart 5 - calendar heatmap, one calendar block per year
-    csvData.c5 = daily.rows;
-    const max = Math.max(1, ...daily.rows.map((r) => r.calls));
+    // Chart 5 - calendar heatmap, one calendar block per year. daily.rows is
+    // one row per (date, berth); sum the picked berths' calls per day so the
+    // filter behaves like chart 1/8's berth picker.
+    const picked5 = new Set([...root.querySelectorAll(".c5-berth:checked")]
+      .map((cb) => cb.value));
+    const rows5 = daily.rows.filter((r) => picked5.has(r.berth));
+    const byDate5 = new Map();
+    for (const r of rows5) {
+      byDate5.set(r.date, (byDate5.get(r.date) ?? 0) + r.calls);
+    }
+    csvData.c5 = rows5;
+    const daily5 = [...byDate5.entries()].map(([date, calls]) => ({ date, calls }));
+    const max = Math.max(1, ...daily5.map((r) => r.calls));
     chart("c5").setOption({
       tooltip: { formatter: (p) => `${p.value[0]}: ${p.value[1]} lượt` },
       visualMap: { min: 0, max, orient: "horizontal", left: "center", top: 0 },
@@ -221,8 +242,8 @@ export async function initAnalysis(root) {
       })),
       series: years.map((y, i) => ({
         type: "heatmap", coordinateSystem: "calendar", calendarIndex: i,
-        data: daily.rows.filter((r) => r.date.startsWith(y))
-                        .map((r) => [r.date, r.calls]),
+        data: daily5.filter((r) => r.date.startsWith(y))
+                    .map((r) => [r.date, r.calls]),
       })),
     });
     document.getElementById("c5").style.height = `${80 + years.length * 130}px`;
@@ -384,10 +405,14 @@ export async function initAnalysis(root) {
         `<label><input type="checkbox" class="c8-berth" value="${b}" checked> ${b}</label>`
       ).join("")}</span>`).join("");
 
-  // Chart 1 dùng lại đúng danh sách bến của chart 8, chỉ khác tiền tố lớp.
+  // Chart 1 và chart 5 dùng lại đúng danh sách bến của chart 8, chỉ khác
+  // tiền tố lớp.
   document.getElementById("c1-berths").innerHTML =
     document.getElementById("c8-berths").innerHTML
       .replaceAll('class="c8-berth"', 'class="c1-berth"');
+  document.getElementById("c5-berths").innerHTML =
+    document.getElementById("c8-berths").innerHTML
+      .replaceAll('class="c8-berth"', 'class="c5-berth"');
 
   const c1Berths = () => [...root.querySelectorAll(".c1-berth")];
   c1Berths().forEach((cb) => cb.addEventListener("change", draw));
@@ -401,6 +426,22 @@ export async function initAnalysis(root) {
     btn.addEventListener("click", () => {
       c1Berths().forEach((cb) => {
         cb.checked = berthZone.get(cb.value) === btn.dataset.c1Zone;
+      });
+      draw();
+    }));
+
+  const c5Berths = () => [...root.querySelectorAll(".c5-berth")];
+  c5Berths().forEach((cb) => cb.addEventListener("change", draw));
+  document.getElementById("c5-all").addEventListener("click", () => {
+    c5Berths().forEach((cb) => { cb.checked = true; }); draw();
+  });
+  document.getElementById("c5-none").addEventListener("click", () => {
+    c5Berths().forEach((cb) => { cb.checked = false; }); draw();
+  });
+  root.querySelectorAll("[data-c5-zone]").forEach((btn) =>
+    btn.addEventListener("click", () => {
+      c5Berths().forEach((cb) => {
+        cb.checked = berthZone.get(cb.value) === btn.dataset.c5Zone;
       });
       draw();
     }));

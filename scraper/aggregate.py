@@ -157,12 +157,15 @@ def build_all(parquet_path, out_dir, today=None):
                  for r in mix.itertuples()]
     })
 
-    # Chart 5 - calls per calendar day
-    daily = (thr.groupby(thr["plan_date"].dt.strftime("%Y-%m-%d"))
-                .size().reset_index(name="calls"))
-    daily.columns = ["date", "calls"]
+    # Chart 5 - calls per calendar day, broken down by berth so the UI can
+    # filter it the same way as chart 1/8/2/7 (sum the picked berths' calls
+    # per day). Same "(chưa map)" fallback as chart 2's berth field.
+    daily = (thr.assign(date=thr["plan_date"].dt.strftime("%Y-%m-%d"),
+                        berth=thr["to_berth"].fillna("(chưa map)"))
+                .groupby(["date", "berth"]).size().reset_index(name="calls"))
     written["daily_heatmap"] = _write(out_dir, "daily_heatmap", {
-        "rows": [{"date": r.date, "calls": int(r.calls)} for r in daily.itertuples()]
+        "rows": [{"date": r.date, "berth": r.berth, "calls": int(r.calls)}
+                 for r in daily.itertuples()]
     })
 
     # Chart 6 - plan slippage: earliest vs latest snapshot of the same plan_date
