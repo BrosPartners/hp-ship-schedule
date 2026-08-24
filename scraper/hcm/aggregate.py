@@ -163,12 +163,21 @@ def build_all(parquet_path, out_dir, today=None):
                        for r in draft_hist.itertuples()],
     })
 
-    # Chart 4 - movements per calendar day
-    daily = (thr.groupby(thr["plan_date"].dt.strftime("%Y-%m-%d"))
-                .size().reset_index(name="calls"))
-    daily.columns = ["date", "calls"]
+    # Chart 4 - movements per calendar day, broken down by cluster so the UI
+    # can filter it the same way as chart 1/5 - mirrors Hai Phong's berth
+    # breakdown exactly (see scraper/aggregate.py's equivalent block). Same
+    # `coverage` start-month filter as chart 2, for the same reason: a
+    # handful of stray rows before a cluster's real coverage start would
+    # otherwise show up as isolated colored days with no real meaning.
+    daily = (thr.assign(date=thr["plan_date"].dt.strftime("%Y-%m-%d"),
+                        cluster=thr["to_cluster"].fillna("(chưa map)"))
+                .groupby(["date", "cluster"]).size().reset_index(name="calls"))
+    if coverage:
+        starts = daily["cluster"].map(coverage)
+        daily = daily[starts.isna() | (daily["date"].str.slice(0, 7) >= starts)]
     written["daily_heatmap"] = _write(out_dir, "daily_heatmap", {
-        "rows": [{"date": r.date, "calls": int(r.calls)} for r in daily.itertuples()]
+        "rows": [{"date": r.date, "cluster": r.cluster, "calls": int(r.calls)}
+                 for r in daily.itertuples()]
     })
 
     # Chart tuyến (thay thế) - KHÔNG phải cảng đi/đến thật: nguồn TP.HCM không

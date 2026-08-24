@@ -11,9 +11,10 @@ const AGG = "data/hcm/agg";
 const CHARTS = [
   ["h1", "1. Lượt di chuyển & tổng DWT theo tháng"],
   ["h2", "2. Thị phần theo cụm cảng"],
-  ["h4", "3. Dịch chuyển theo khu vực"],
-  ["h5", "4. Lượt tàu / tổng DWT theo từng cụm, theo tháng"],
-  ...teuCharts("ht", 5),
+  ["h3", "3. Lượt tàu theo ngày (heatmap)"],
+  ["h4", "4. Dịch chuyển theo khu vực"],
+  ["h5", "5. Lượt tàu / tổng DWT theo từng cụm, theo tháng"],
+  ...teuCharts("ht", 6),
 ];
 
 const ZONE_LABELS = {
@@ -25,6 +26,68 @@ const ZONE_LABELS = {
 };
 const ZONE_ORDER = ["song_sai_gon", "song_soai_rap", "cai_mep", "vung_tau",
                     "chua_xep"];
+
+function pct(cur, prev) {
+  if (cur == null || prev == null || !prev) return null;
+  return +((100 * (cur - prev)) / prev).toFixed(1);
+}
+
+function fmtPct(v) {
+  if (v === null || v === undefined) return "—";
+  const cls = v > 0 ? "pos" : v < 0 ? "neg" : "";
+  return `<span class="${cls}">${v > 0 ? "+" : ""}${v}%</span>`;
+}
+
+// Bảng tổng lượt tàu theo tháng + %MoM/%YoY dưới heatmap (chart 3) - giống
+// hệt bảng dưới chart 4 (Hải Phòng), xem ghi chú ở web/js/analysis.js. Tháng
+// chưa tròn tháng chỉ so với đúng N ngày đầu của tháng/kỳ so sánh.
+function monthlyGrowthHtml(rows, partial) {
+  if (!rows.length) return `<p class="note">Không có cụm nào được chọn.</p>`;
+  const byDate = new Map(rows.map((r) => [r.date, r.calls]));
+  const monthsUniq = [...new Set(rows.map((r) => r.date.slice(0, 7)))].sort();
+  const sumMonth = (month, maxDay) => {
+    let s = 0;
+    for (const [date, calls] of byDate) {
+      if (!date.startsWith(month)) continue;
+      if (maxDay && Number(date.slice(8, 10)) > maxDay) continue;
+      s += calls;
+    }
+    return s;
+  };
+  const prevMonth = (month) => {
+    const [y, m] = month.split("-").map(Number);
+    const d = new Date(y, m - 2, 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  };
+  const prevYear = (month) => {
+    const [y, m] = month.split("-").map(Number);
+    return `${y - 1}-${String(m).padStart(2, "0")}`;
+  };
+  const rowsOut = monthsUniq.slice().reverse().map((month) => {
+    const isPartial = partial && !partial.complete && month === partial.month;
+    const dayCap = isPartial ? partial.days : null;
+    return {
+      month, partial: isPartial, days: dayCap,
+      total: sumMonth(month, dayCap),
+      mom: pct(sumMonth(month, dayCap), sumMonth(prevMonth(month), dayCap)),
+      yoy: pct(sumMonth(month, dayCap), sumMonth(prevYear(month), dayCap)),
+    };
+  });
+  return `
+    <p class="note" style="margin-top:6px">Tổng lượt tàu theo tháng, %MoM (so tháng
+      trước) và %YoY (so cùng kỳ năm trước). Tháng chưa tròn tháng chỉ so với
+      đúng số ngày tương ứng của tháng/kỳ so sánh (ghi rõ ở cột Tháng).</p>
+    <div class="growth-table-wrap"><table class="grid growth-table" id="h3-growth-table">
+      <thead><tr><th>Tháng</th><th class="num">Tổng lượt tàu</th>
+        <th class="num">%MoM</th><th class="num">%YoY</th></tr></thead>
+      <tbody>${rowsOut.map((r) => `<tr>
+        <td>${r.month}${r.partial ? ` (${r.days} ngày đầu)` : ""}</td>
+        <td class="num">${r.total.toLocaleString("vi-VN")}</td>
+        <td class="num">${fmtPct(r.mom)}</td>
+        <td class="num">${fmtPct(r.yoy)}</td>
+      </tr>`).join("")}</tbody>
+    </table></div>`;
+}
 
 function zoneToggles(prefix) {
   return `<div class="filters" id="${prefix}-zone-filters">
@@ -39,10 +102,11 @@ function zoneToggles(prefix) {
 export async function initHcm(root) {
   root.innerHTML = `<p>Đang tải số liệu tổng hợp TP.HCM…</p>`;
   const echarts = await import(ECHARTS);
-  const [volume, cluster, coverage, teu, zoneShare, manifest] = await Promise.all([
+  const [volume, cluster, coverage, teu, zoneShare, daily, manifest] = await Promise.all([
     loadJSONFrom(AGG, "monthly_volume"), loadJSONFrom(AGG, "cluster_share"),
     loadJSONFrom(AGG, "coverage"), loadJSONFrom(AGG, "teu"),
-    loadJSONFrom(AGG, "zone_share"), loadManifest("hcm"),
+    loadJSONFrom(AGG, "zone_share"), loadJSONFrom(AGG, "daily_heatmap"),
+    loadManifest("hcm"),
   ]);
   const partial = partialMonth(manifest.last_plan_date);
   const partialNote = partial && !partial.complete
@@ -78,6 +142,16 @@ export async function initHcm(root) {
       </div>
       <div class="filters berth-picker" id="h1-clusters"></div>` : ""}
       ${id === "h2" ? zoneToggles("h2") : ""}
+      ${id === "h3" ? `
+      <div class="filters" id="h3-controls">
+        <span class="quick">Chọn nhanh:
+          ${ZONE_ORDER.filter((z) => z !== "chua_xep").map((z) =>
+            `<button type="button" data-h3-zone="${z}">${ZONE_LABELS[z].split(" (")[0]}</button>`).join("")}
+          <button type="button" id="h3-all">Chọn tất cả</button>
+          <button type="button" id="h3-none">Ẩn tất cả</button>
+        </span>
+      </div>
+      <div class="filters berth-picker" id="h3-clusters"></div>` : ""}
       ${id === "h4" ? zoneToggles("h4") : ""}
       ${id === "h5" ? `
       <div class="filters" id="h5-controls">
@@ -96,6 +170,7 @@ export async function initHcm(root) {
       <div class="filters berth-picker" id="h5-clusters"></div>` : ""}
       ${id === "ht-vol" ? teuControlsHtml("ht") : ""}
       <div class="chart" id="${id}"></div>
+      ${id === "h3" ? `<div id="h3-growth"></div>` : ""}
       ${id === "ht-dwt" ? `<p class="note">
         Nguồn: Hiệp hội Cảng biển Việt Nam (VPA). ${teu.derived_note}
         Chỉ những cụm có số container đối chiếu được mới xuất hiện ở đây
@@ -138,6 +213,7 @@ export async function initHcm(root) {
   const csvData = {};
   const chart = (id) => (inst[id] ??= echarts.init(document.getElementById(id)));
   const months = [...new Set(volume.rows.map((r) => r.month))].sort();
+  const years = [...new Set(months.map((m) => m.slice(0, 4)))].sort();
 
   function draw() {
     const metric = document.getElementById("h-metric").value;
@@ -195,6 +271,35 @@ export async function initHcm(root) {
         }),
       })),
     }, true); // notMerge: số cụm đổi theo bộ lọc khu
+
+    // Chart 3 - calendar heatmap, một khối lịch mỗi năm, giống chart 5 (chart
+    // "4." trên UI) của Hải Phòng. daily.rows là một dòng/(ngày, cụm); cộng
+    // theo đúng các cụm đang chọn trước khi vẽ.
+    const picked3 = new Set([...root.querySelectorAll(".h3-cluster:checked")]
+      .map((cb) => cb.value));
+    const rows3 = daily.rows.filter((r) => picked3.has(r.cluster));
+    const byDate3 = new Map();
+    for (const r of rows3) {
+      byDate3.set(r.date, (byDate3.get(r.date) ?? 0) + r.calls);
+    }
+    csvData.h3 = rows3;
+    const daily3 = [...byDate3.entries()].map(([date, calls]) => ({ date, calls }));
+    const max3 = Math.max(1, ...daily3.map((r) => r.calls));
+    chart("h3").setOption({
+      tooltip: { formatter: (p) => `${p.value[0]}: ${p.value[1]} lượt` },
+      visualMap: { min: 0, max: max3, orient: "horizontal", left: "center", top: 0 },
+      calendar: years.map((y, i) => ({
+        range: y, top: 60 + i * 130, left: 60, right: 20, cellSize: ["auto", 13],
+      })),
+      series: years.map((y, i) => ({
+        type: "heatmap", coordinateSystem: "calendar", calendarIndex: i,
+        data: daily3.filter((r) => r.date.startsWith(y))
+                    .map((r) => [r.date, r.calls]),
+      })),
+    });
+    document.getElementById("h3").style.height = `${80 + years.length * 130}px`;
+    chart("h3").resize();
+    document.getElementById("h3-growth").innerHTML = monthlyGrowthHtml(daily3, partial);
 
     // Chart 4 - thị phần theo khu, đối xứng với chart 7 của Hải Phòng
     const zones4 = [...root.querySelectorAll(".h4-zone:checked")]
@@ -307,10 +412,14 @@ export async function initHcm(root) {
       .addEventListener("click", () => setAll(false));
   }
 
-  // Chart 1 dùng lại đúng danh sách cụm của chart 5, chỉ khác tiền tố lớp.
+  // Chart 1 và chart 3 dùng lại đúng danh sách cụm của chart 5, chỉ khác
+  // tiền tố lớp.
   document.getElementById("h1-clusters").innerHTML =
     document.getElementById("h5-clusters").innerHTML
       .replaceAll('class="h5-cluster"', 'class="h1-cluster"');
+  document.getElementById("h3-clusters").innerHTML =
+    document.getElementById("h5-clusters").innerHTML
+      .replaceAll('class="h5-cluster"', 'class="h3-cluster"');
 
   const h1Boxes = () => [...root.querySelectorAll(".h1-cluster")];
   h1Boxes().forEach((cb) => cb.addEventListener("change", draw));
@@ -324,6 +433,22 @@ export async function initHcm(root) {
     btn.addEventListener("click", () => {
       h1Boxes().forEach((cb) => {
         cb.checked = zoneOf.get(cb.value) === btn.dataset.h1Zone;
+      });
+      draw();
+    }));
+
+  const h3Boxes = () => [...root.querySelectorAll(".h3-cluster")];
+  h3Boxes().forEach((cb) => cb.addEventListener("change", draw));
+  document.getElementById("h3-all").addEventListener("click", () => {
+    h3Boxes().forEach((cb) => { cb.checked = true; }); draw();
+  });
+  document.getElementById("h3-none").addEventListener("click", () => {
+    h3Boxes().forEach((cb) => { cb.checked = false; }); draw();
+  });
+  root.querySelectorAll("[data-h3-zone]").forEach((btn) =>
+    btn.addEventListener("click", () => {
+      h3Boxes().forEach((cb) => {
+        cb.checked = zoneOf.get(cb.value) === btn.dataset.h3Zone;
       });
       draw();
     }));
