@@ -3,11 +3,11 @@
     "2024-09-07"
   ],
   "start_date": "2023-01-01",
-  "last_plan_date": "2026-08-26",
-  "last_crawled_at": "2026-08-25 02:03:50.374177",
-  "row_count": 104812,
-  "days_covered": 1333,
-  "days_expected": 1333,
+  "last_plan_date": "2026-08-27",
+  "last_crawled_at": "2026-08-26 02:10:12.734444",
+  "row_count": 104936,
+  "days_covered": 1334,
+  "days_expected": 1334,
   "missing_days": [],
   "partitions": [
     "ship_plan_2023-01.parquet",
