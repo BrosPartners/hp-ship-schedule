@@ -1,28 +1,28 @@
 unit,volume_key,lat,lon,geo_source,capacity_teu,capacity_source,thc_usd,zone,note
-Cát Lái,Cat Lai,10.76668,106.79498,osm,,,,song_sai_gon,
-SP-ITC,,10.78439,106.81696,osm,,,,song_sai_gon,
-Tân Cảng Hiệp Phước,Tan Cang Hiep Phuoc,10.64818,106.74398,osm,,,,song_sai_gon,
-Long An,,10.53601,106.73869,osm,,,,song_soai_rap,Toạ độ theo Cảng quốc tế Long An trên OSM
-Gemalink,,10.49850,107.00036,cangvu_api,,,,cai_mep,Toạ độ cầu cảng thật (API Cảng vụ TP.HCM - khớp đúng raw_name trong berth_map)
-CMIT,,10.51440,107.01105,cangvu_api,,,,cai_mep,Toạ độ cầu cảng thật (API Cảng vụ TP.HCM - khớp đúng raw_name trong berth_map)
-Tong hop Cai Mep,,10.52039,107.01606,cangvu_api,,,,cai_mep,Toạ độ cầu cảng thật (API Cảng vụ TP.HCM - khớp đúng raw_name trong berth_map)
-TCIT,,10.53775,107.03230,osm,,,,cai_mep,Toạ độ theo Tan Cang - Cai Mep International Terminal trên OSM
-TCTT,,10.50953,107.00939,cangvu_api,,,,cai_mep,"Toạ độ lấy từ API Cảng vụ (""BẾN CẢNG CONT QUỐC TẾ CÁI MÉP""); vẫn CHƯA nối được với bến nào trong berth_map (cluster ""TCTT"" không tồn tại - raw_name ""CẦU CẢNG TCTT"" đang gán vào cluster ""Vung Tau""), nên điểm này chưa có dữ liệu sản lượng"
-SSIT,,10.50583,107.00500,cangvu_api,,,,cai_mep,Toạ độ cầu cảng thật (API Cảng vụ TP.HCM - khớp đúng raw_name trong berth_map)
-SITV,,10.59839,107.02268,cangvu_api,,,,cai_mep,Toạ độ cầu cảng thật (API Cảng vụ TP.HCM - khớp đúng raw_name trong berth_map)
-SP-PSA,,10.56777,107.02232,osm,,,,cai_mep,
-Tong hop Thi Vai,,10.57226,107.02594,osm,,,,cai_mep,
-Xi mang Thang Long,,10.65357,106.74007,cangvu_api,,,,song_sai_gon,"Đổi tên từ ""Xi mang Thi Vai"" (2026-08-19): cluster cũ gán sai tên/vị trí - hai raw_name XMTL 1/2 khớp chính xác API ra ""BẾN CẢNG XI MĂNG THĂNG LONG"" tại Nhà Bè (khuvucsong=Sông Soài Rạp), không liên quan gì Thị Vải/Cái Mép. Toạ độ = trung bình 2 phao XMTL 1/2 khớp API. Đã đổi zone cai_mep -> song_sai_gon cho khớp vị trí thật"
-Phu My,,10.53140,107.05404,cangvu_api,,,,cai_mep,"Trung bình cả 10 raw_name của cụm khớp API (NM thép Phú Mỹ, PTSC Phú Mỹ, HĐ 129, XMCP, Posco, Posco Yamato Vina, PTSC Cù Lao Tào) - vẫn là điểm đại diện cho một cụm trải rộng, không phải một bến đơn"
-Baria Serece,,10.58675,107.02782,cangvu_api,,,,cai_mep,Toạ độ cầu cảng thật (API Cảng vụ TP.HCM - khớp đúng raw_name trong berth_map)
-QT Thi Vai,,10.59270,107.03000,osm,,,,cai_mep,
+Cát Lái,Cat Lai,10.76668,106.79498,osm,2500000,"Báo chí phổ biến (VnEconomy/HVT Logistics...) - công suất thiết kế 2,5 triệu TEU/năm, thực tế khai thác ~5,5 triệu TEU/năm nên đang vượt xa thiết kế",,song_sai_gon,
+SP-ITC,,10.78439,106.81696,osm,2000000,VPA/Cục Hàng hải và Đường thuỷ Việt Nam - công suất thiết kế 2 triệu TEU/năm,,song_sai_gon,
+Tân Cảng Hiệp Phước,Tan Cang Hiep Phuoc,10.64818,106.74398,osm,650000,Báo chí (Long Hậu Corp dẫn) - công suất thiết kế 650.000 TEU/năm,,song_sai_gon,
+Long An,,10.53601,106.73869,osm,1000000,"Báo chí (VnExpress/CafeF...) - mục tiêu công suất khai thác 1 triệu TEU/năm đến 2030; kế hoạch mở rộng bến 6-7 lên 3 triệu TEU/năm chưa hoàn thành nên chưa tính vào đây",,song_soai_rap,Toạ độ theo Cảng quốc tế Long An trên OSM
+Gemalink,,10.49850,107.00036,cangvu_api,2500000,"Báo chí (Vietstock/MBS...) - công suất giai đoạn 1+2 hiện tại 2,5 triệu TEU/năm; kế hoạch tối đa sau khi hoàn thành toàn bộ các giai đoạn là 4 triệu TEU/năm, chưa tính vào đây",,cai_mep,Toạ độ cầu cảng thật (API Cảng vụ TP.HCM - khớp đúng raw_name trong berth_map)
+CMIT,,10.51440,107.01105,cangvu_api,1100000,"Báo chí (CMIT/VLA...) - công suất hiện tại hơn 1,1 triệu TEU/năm (cầu cảng 600m); kế hoạch mở rộng lên 3 triệu TEU/năm sau khi hoàn thành toàn bộ chưa tính vào đây",,cai_mep,Toạ độ cầu cảng thật (API Cảng vụ TP.HCM - khớp đúng raw_name trong berth_map)
+Tong hop Cai Mep,,10.52039,107.01606,cangvu_api,,,,cai_mep,Toạ độ cầu cảng thật (API Cảng vụ TP.HCM - khớp đúng raw_name trong berth_map). Chưa tìm được công suất thiết kế công bố riêng cho bến này
+TCIT,,10.53775,107.03230,osm,2500000,"Báo chí (Saigonnewport/VLA...) - công suất thiết kế ban đầu 1,65 triệu TEU/năm, nâng cấp thiết bị 10/2019 lên khai thác 2,5 triệu TEU/năm (số dùng ở đây)",,cai_mep,Toạ độ theo Tan Cang - Cai Mep International Terminal trên OSM
+TCTT,,10.50953,107.00939,cangvu_api,,,,cai_mep,"Toạ độ lấy từ API Cảng vụ (""BẾN CẢNG CONT QUỐC TẾ CÁI MÉP""); vẫn CHƯA nối được với bến nào trong berth_map (cluster ""TCTT"" không tồn tại - raw_name ""CẦU CẢNG TCTT"" đang gán vào cluster ""Vung Tau""), nên điểm này chưa có dữ liệu sản lượng. Chưa điền công suất vì lý do tương tự (số công bố lẫn với cụm CMIT-TCTT gộp chung, không tách riêng được)"
+SSIT,,10.50583,107.00500,cangvu_api,1200000,"Báo chí (Vietnam+/CafeF...) - công suất thiết kế 1,2 triệu TEU/năm",,cai_mep,Toạ độ cầu cảng thật (API Cảng vụ TP.HCM - khớp đúng raw_name trong berth_map)
+SITV,,10.59839,107.02268,cangvu_api,1100000,"Báo chí (Nhân Dân/VLA...) - công suất thiết kế 1,1 triệu TEU/năm",,cai_mep,Toạ độ cầu cảng thật (API Cảng vụ TP.HCM - khớp đúng raw_name trong berth_map)
+SP-PSA,,10.56777,107.02232,osm,1650000,"Báo chí (SGGP...) - công suất thiết kế 1,65 triệu TEU/năm (đang khai thác thực tế ~1,1 triệu TEU/năm); giai đoạn 2 hoàn thành sẽ vượt 2 triệu TEU/năm, chưa tính vào đây",,cai_mep,
+Tong hop Thi Vai,,10.57226,107.02594,osm,,,,cai_mep,Chưa tìm được công suất thiết kế công bố riêng cho bến này
+Xi mang Thang Long,,10.65357,106.74007,cangvu_api,,,,song_sai_gon,"Đổi tên từ ""Xi mang Thi Vai"" (2026-08-19): cluster cũ gán sai tên/vị trí - hai raw_name XMTL 1/2 khớp chính xác API ra ""BẾN CẢNG XI MĂNG THĂNG LONG"" tại Nhà Bè (khuvucsong=Sông Soài Rạp), không liên quan gì Thị Vải/Cái Mép. Toạ độ = trung bình 2 phao XMTL 1/2 khớp API. Đã đổi zone cai_mep -> song_sai_gon cho khớp vị trí thật. Bến xi măng, không phải bến container nên không có công suất TEU"
+Phu My,,10.53140,107.05404,cangvu_api,,,,cai_mep,"Trung bình cả 10 raw_name của cụm khớp API (NM thép Phú Mỹ, PTSC Phú Mỹ, HĐ 129, XMCP, Posco, Posco Yamato Vina, PTSC Cù Lao Tào) - vẫn là điểm đại diện cho một cụm trải rộng, không phải một bến đơn. Cụm hàng rời/công nghiệp, không phải bến container nên không có công suất TEU"
+Baria Serece,,10.58675,107.02782,cangvu_api,,,,cai_mep,Toạ độ cầu cảng thật (API Cảng vụ TP.HCM - khớp đúng raw_name trong berth_map). Chưa tìm được công suất thiết kế công bố riêng cho bến này
+QT Thi Vai,,10.59270,107.03000,osm,,,,cai_mep,Chưa tìm được công suất thiết kế công bố riêng cho bến này
 Vung Tau,,10.34500,107.07000,uoc_luong,,,,vung_tau,"CHƯA SỬA - đây là rổ tạp gồm >10 raw_name rải trên ít nhất 4 khu vực thật khác nhau (Vũng Tàu, Cái Mép, Nhà Bè, và một điểm khớp nhầm sang Côn Đảo) nên không có một toạ độ trung bình nào là đúng; giữ nguyên ước lượng cho tới khi tách cluster này ra nhiều cluster nhỏ hơn theo vị trí thật"
-PTSC Vung Tau,,10.39027,107.08610,cangvu_api,,,,vung_tau,Trung bình 7 phao HL PTSC-1..7 khớp API (thật sự ở Vũng Tàu, giữ nguyên zone)
-Vietsovpetro,,10.38968,107.09337,cangvu_api,,,,vung_tau,Trung bình 8 phao VSPT-0..9 khớp API (thật sự ở Vũng Tàu, giữ nguyên zone)
-PV GAS Vung Tau,,10.53102,107.02411,cangvu_api,,,,cai_mep,"Toạ độ thật (2 phao PVGAS-1/2) nằm ở khu Cái Mép/Phú Mỹ, KHÔNG PHẢI Vũng Tàu dù tên gọi - đã đổi zone từ vung_tau sang cai_mep cho khớp vị trí địa lý thật"
-PV Oil Vung Tau,,10.68511,106.75840,cangvu_api,,,,song_sai_gon,"Toạ độ thật (2 phao PVOIL 1/2, bencang API ghi thẳng ""NHÀ BÈ""), KHÔNG PHẢI Vũng Tàu dù tên gọi - đã đổi zone từ vung_tau sang song_sai_gon"
-Dong Xuyen,,10.40568,107.10530,cangvu_api,,,,vung_tau,Toạ độ cầu cảng thật (API Cảng vụ TP.HCM - khớp đúng raw_name trong berth_map, thật sự ở Vũng Tàu)
-Shell SPM,,10.69782,106.74966,cangvu_api,,,,song_sai_gon,"Trung bình 4 phao 1B/2A/3B/4BSHELL khớp API - đây là cầu phao tại Tổng kho xăng dầu Nhà Bè, KHÔNG PHẢI phao rót dầu ngoài khơi Vũng Tàu như ghi chú cũ suy đoán. Đã đổi zone từ vung_tau sang song_sai_gon"
-Esso SPM,,10.70149,106.74766,cangvu_api,,,,song_sai_gon,"Trung bình 3 phao 1A/3A/4AESSO khớp API - Tổng kho xăng dầu Nhà Bè, không phải ngoài khơi Vũng Tàu. Đã đổi zone sang song_sai_gon"
-Caltex SPM,,10.69100,106.75345,cangvu_api,,,,song_sai_gon,"Trung bình 2 phao CALTEX/CALTEX2 khớp API - Tổng kho xăng dầu Nhà Bè, không phải ngoài khơi Vũng Tàu. Đã đổi zone sang song_sai_gon"
-Elf Gas SPM,,10.77339,106.73631,cangvu_api,,,,song_sai_gon,"Phao ELF GAS khớp API, bencang ""GAS ELF"" gần cửa sông Sài Gòn - không phải ngoài khơi Vũng Tàu. Đã đổi zone sang song_sai_gon"
+PTSC Vung Tau,,10.39027,107.08610,cangvu_api,,,,vung_tau,Trung bình 7 phao HL PTSC-1..7 khớp API (thật sự ở Vũng Tàu, giữ nguyên zone). Phao dầu khí, không phải bến container nên không có công suất TEU
+Vietsovpetro,,10.38968,107.09337,cangvu_api,,,,vung_tau,Trung bình 8 phao VSPT-0..9 khớp API (thật sự ở Vũng Tàu, giữ nguyên zone). Phao dầu khí, không phải bến container nên không có công suất TEU
+PV GAS Vung Tau,,10.53102,107.02411,cangvu_api,,,,cai_mep,"Toạ độ thật (2 phao PVGAS-1/2) nằm ở khu Cái Mép/Phú Mỹ, KHÔNG PHẢI Vũng Tàu dù tên gọi - đã đổi zone từ vung_tau sang cai_mep cho khớp vị trí địa lý thật. Phao khí, không phải bến container nên không có công suất TEU"
+PV Oil Vung Tau,,10.68511,106.75840,cangvu_api,,,,song_sai_gon,"Toạ độ thật (2 phao PVOIL 1/2, bencang API ghi thẳng ""NHÀ BÈ""), KHÔNG PHẢI Vũng Tàu dù tên gọi - đã đổi zone từ vung_tau sang song_sai_gon. Phao xăng dầu, không phải bến container nên không có công suất TEU"
+Dong Xuyen,,10.40568,107.10530,cangvu_api,,,,vung_tau,Toạ độ cầu cảng thật (API Cảng vụ TP.HCM - khớp đúng raw_name trong berth_map, thật sự ở Vũng Tàu). Cụm công nghiệp KCN Đông Xuyên, không phải bến container nên không có công suất TEU
+Shell SPM,,10.69782,106.74966,cangvu_api,,,,song_sai_gon,"Trung bình 4 phao 1B/2A/3B/4BSHELL khớp API - đây là cầu phao tại Tổng kho xăng dầu Nhà Bè, KHÔNG PHẢI phao rót dầu ngoài khơi Vũng Tàu như ghi chú cũ suy đoán. Đã đổi zone từ vung_tau sang song_sai_gon. Phao xăng dầu, không phải bến container nên không có công suất TEU"
+Esso SPM,,10.70149,106.74766,cangvu_api,,,,song_sai_gon,"Trung bình 3 phao 1A/3A/4AESSO khớp API - Tổng kho xăng dầu Nhà Bè, không phải ngoài khơi Vũng Tàu. Đã đổi zone sang song_sai_gon. Phao xăng dầu, không phải bến container nên không có công suất TEU"
+Caltex SPM,,10.69100,106.75345,cangvu_api,,,,song_sai_gon,"Trung bình 2 phao CALTEX/CALTEX2 khớp API - Tổng kho xăng dầu Nhà Bè, không phải ngoài khơi Vũng Tàu. Đã đổi zone sang song_sai_gon. Phao xăng dầu, không phải bến container nên không có công suất TEU"
+Elf Gas SPM,,10.77339,106.73631,cangvu_api,,,,song_sai_gon,"Phao ELF GAS khớp API, bencang ""GAS ELF"" gần cửa sông Sài Gòn - không phải ngoài khơi Vũng Tàu. Đã đổi zone sang song_sai_gon. Phao khí, không phải bến container nên không có công suất TEU"
