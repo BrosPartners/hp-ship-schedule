@@ -16,17 +16,27 @@ const TILES = {
     noLabels: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
     attrib: "Esri World Imagery",
   },
+  // CARTO's free anonymous tile CDN (basemaps.cartocdn.com) started requiring
+  // an API key at some point and now serves an "API KEY REQUIRED" watermark
+  // instead of tiles - switched both "duong" and "mo" to Esri's anonymous
+  // ArcGIS REST tile services (same free, no-key pattern already used for
+  // "anh" below) so the map keeps working without a key. OSM's raster tiles
+  // bake labels into the image (no separate no-label variant exists), so
+  // "duong" reuses the same URL for both; "mo" uses Esri's Light Gray Base
+  // (no labels) plus a separate Reference layer added only when labels are
+  // shown - see the two-layer handling in `applyTile()` below.
   duong: {
     label: "Bản đồ đường",
     normal: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-    noLabels: "https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png",
-    attrib: "© OpenStreetMap, © CARTO",
+    noLabels: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    attrib: "© OpenStreetMap",
   },
   mo: {
     label: "Nền mờ",
-    normal: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
-    noLabels: "https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png",
-    attrib: "© CARTO",
+    normal: "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}",
+    noLabels: "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}",
+    refLabels: "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}",
+    attrib: "Esri Light Gray Canvas",
   },
 };
 
@@ -282,16 +292,26 @@ export async function initMap(root, port = "hp") {
 
   const map = L.map("m-map").setView(cfg.center, 10);
   let tiles = null;
+  // "mo" (Esri Light Gray Canvas) is a base tile with no labels plus an
+  // optional separate reference-labels layer stacked on top - see the
+  // `refLabels` comment on TILES above. Other nền have no such second layer.
+  let refTiles = null;
   const applyTile = () => {
     const key = document.getElementById("m-tile").value;
     const hide = document.getElementById("m-nolabels").checked;
     const opacity = document.getElementById("m-opacity").value / 100;
     if (tiles) map.removeLayer(tiles);
+    if (refTiles) { map.removeLayer(refTiles); refTiles = null; }
     const spec = TILES[key];
     tiles = L.tileLayer(hide ? spec.noLabels : spec.normal,
                         { attribution: spec.attrib, maxZoom: 18, opacity })
              .addTo(map);
     tiles.bringToBack();
+    if (!hide && spec.refLabels) {
+      refTiles = L.tileLayer(spec.refLabels,
+                             { attribution: spec.attrib, maxZoom: 18, opacity })
+                  .addTo(map);
+    }
   };
   applyTile();
 
@@ -439,6 +459,7 @@ export async function initMap(root, port = "hp") {
   slider.addEventListener("input", () => {
     document.getElementById("m-opacity-val").textContent = `${slider.value}%`;
     if (tiles) tiles.setOpacity(slider.value / 100);
+    if (refTiles) refTiles.setOpacity(slider.value / 100);
   });
 
   const panel = document.getElementById("m-geo-panel");
