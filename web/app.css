@@ -74,6 +74,10 @@ table.grid td { padding: 5px 8px; border-top: 1px solid var(--line);
 /* Tab Bản đồ */
 .map { height: 68vh; min-height: 420px; border: 1px solid var(--line);
        border-radius: 6px; }
+/* Nút "Toàn màn hình" phóng to đúng khung bản đồ qua Fullscreen API - trình
+   duyệt để trống nền đen quanh phần tử theo kích thước gốc nếu không ép
+   width/height phủ kín màn hình. */
+.map:fullscreen { width: 100vw; height: 100vh; border: 0; border-radius: 0; }
 .map-legend { display: flex; align-items: center; gap: 8px; margin: 10px 0 4px;
               font-size: 13px; color: var(--muted, #567); }
 .map-legend .ramp { width: 180px; height: 10px; border-radius: 5px;

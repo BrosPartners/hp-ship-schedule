@@ -255,6 +255,7 @@ export async function initMap(root, port = "hp") {
       <label><input type="checkbox" id="m-drag"> Kéo chấm để sửa toạ độ</label>
       <button type="button" id="m-geo">📍 Dán link Google Maps</button>
       <button type="button" id="m-export">Tải CSV toạ độ</button>
+      <button type="button" id="m-fullscreen">⛶ Toàn màn hình</button>
     </div>
     <div class="geo-panel" id="m-geo-panel" hidden>
       <label>Cảng<select id="m-geo-unit">
@@ -569,6 +570,33 @@ export async function initMap(root, port = "hp") {
     const a = document.createElement("a");
     a.href = url; a.download = "port_facts.csv"; a.click();
     URL.revokeObjectURL(url);
+  });
+
+  // Toàn màn hình: phóng to đúng khung bản đồ (không phải cả trang), rồi báo
+  // Leaflet tính lại kích thước - không gọi invalidateSize() thì bản đồ vẫn
+  // giữ nguyên kích thước cũ và chừa khoảng trống/cắt xén sau khi đổi cỡ.
+  const mapEl = document.getElementById("m-map");
+  const fsBtn = document.getElementById("m-fullscreen");
+  fsBtn.addEventListener("click", () => {
+    if (document.fullscreenElement) {
+      document.exitFullscreen();
+    } else {
+      mapEl.requestFullscreen().catch(() => {
+        msg2Fallback();
+      });
+    }
+  });
+  // Trình duyệt không hỗ trợ Fullscreen API (hiếm, nhưng requestFullscreen có
+  // thể ném lỗi) thì báo thẳng thay vì im lặng không làm gì.
+  function msg2Fallback() {
+    alert("Trình duyệt này không hỗ trợ chế độ toàn màn hình.");
+  }
+  document.addEventListener("fullscreenchange", () => {
+    const isFs = document.fullscreenElement === mapEl;
+    fsBtn.textContent = isFs ? "⛶ Thoát toàn màn hình" : "⛶ Toàn màn hình";
+    // Đợi trình duyệt đổi layout xong rồi mới đo lại - gọi ngay trong cùng
+    // sự kiện đôi khi vẫn đo ra kích thước cũ.
+    setTimeout(() => map.invalidateSize(), 50);
   });
 
   renderPending();
