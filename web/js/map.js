@@ -269,6 +269,15 @@ export async function initMap(root, port = "hp") {
       <button type="button" id="m-geo-close">Đóng</button>
       <div id="m-geo-msg" class="geo-msg"></div>
     </div>
+    <div class="filters" id="m-port-controls">
+      <span class="quick">Lọc cảng:
+        ${Object.entries(ZONE_LABELS).map(([z, label]) =>
+          `<button type="button" data-m-zone="${z}">${label.split(" (")[0]}</button>`).join("")}
+        <button type="button" id="m-port-all">Chọn tất cả</button>
+        <button type="button" id="m-port-none">Ẩn tất cả</button>
+      </span>
+    </div>
+    <div class="filters berth-picker" id="m-port-picker"></div>
     <div id="m-map" class="map"></div>
     <div id="m-legend" class="map-legend"></div>
     <p class="note">
@@ -281,6 +290,20 @@ export async function initMap(root, port = "hp") {
       sửa toạ độ". <b>Sửa xong chỉ nằm trên trình duyệt này</b> - phải tải CSV
       rồi thay <code>${cfg.facts}</code> trong repo thì người khác mới thấy. Cảng nào chưa có công suất/THC thì hiện "chưa có" chứ không đoán.
     </p>`;
+
+  // Bộ lọc cảng: nhóm theo khu, giống cách chart 1/8 (tab Phân tích) nhóm
+  // bến theo khu. Khu không có trong cfg.zones (vd HCM "chua_xep") vẫn được
+  // gộp vào một nhóm riêng để không có cảng nào biến mất khỏi bộ lọc.
+  const zoneOrder = Object.keys(ZONE_LABELS);
+  for (const z of new Set(data.points.map((p) => p.zone))) {
+    if (!zoneOrder.includes(z)) zoneOrder.push(z);
+  }
+  document.getElementById("m-port-picker").innerHTML = zoneOrder
+    .filter((z) => data.points.some((p) => p.zone === z))
+    .map((z) => `<span class="zone-group"><b>${ZONE_LABELS[z] ?? "(chưa xếp khu)"}:</b>
+      ${data.points.filter((p) => p.zone === z).map((p) =>
+        `<label><input type="checkbox" class="m-port" value="${p.unit}" checked> ${p.unit}</label>`
+      ).join("")}</span>`).join("");
 
   // Mặc định tô theo chỉ tiêu đầu tiên thực sự có số. TP.HCM chưa nhập công
   // suất cảng nào, nên để nguyên mặc định "% công suất" thì mở bản đồ ra là
@@ -394,12 +417,16 @@ export async function initMap(root, port = "hp") {
     const draggable = document.getElementById("m-drag").checked;
     layer.clearLayers();
 
-    const vals = data.points.map((p) => p[metric]).filter((v) => v !== null);
-    const sizes = data.points.map((p) => p[sizeBy]).filter((v) => v !== null);
+    const pickedPorts = new Set([...root.querySelectorAll(".m-port:checked")]
+      .map((cb) => cb.value));
+    const shown = data.points.filter((p) => pickedPorts.has(p.unit));
+
+    const vals = shown.map((p) => p[metric]).filter((v) => v !== null);
+    const sizes = shown.map((p) => p[sizeBy]).filter((v) => v !== null);
     const lo = Math.min(...vals), hi = Math.max(...vals);
     const smax = Math.max(...sizes, 1);
 
-    for (const p of data.points) {
+    for (const p of shown) {
       const v = p[metric];
       // Cảng thiếu số của chỉ tiêu đang tô sẽ là chấm xám mờ, vẫn hiện trên
       // bản đồ. Ẩn đi sẽ khiến bản đồ trông như cảng đó không tồn tại.
@@ -452,6 +479,23 @@ export async function initMap(root, port = "hp") {
 
   ["m-metric", "m-size", "m-labels", "m-drag"].forEach((id) =>
     document.getElementById(id).addEventListener("change", draw));
+
+  const portBoxes = () => [...root.querySelectorAll(".m-port")];
+  portBoxes().forEach((cb) => cb.addEventListener("change", draw));
+  document.getElementById("m-port-all").addEventListener("click", () => {
+    portBoxes().forEach((cb) => { cb.checked = true; }); draw();
+  });
+  document.getElementById("m-port-none").addEventListener("click", () => {
+    portBoxes().forEach((cb) => { cb.checked = false; }); draw();
+  });
+  const zoneOfUnit = new Map(data.points.map((p) => [p.unit, p.zone]));
+  root.querySelectorAll("[data-m-zone]").forEach((btn) =>
+    btn.addEventListener("click", () => {
+      portBoxes().forEach((cb) => {
+        cb.checked = zoneOfUnit.get(cb.value) === btn.dataset.mZone;
+      });
+      draw();
+    }));
   ["m-tile", "m-nolabels"].forEach((id) =>
     document.getElementById(id).addEventListener("change", applyTile));
 
