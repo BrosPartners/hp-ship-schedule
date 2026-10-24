@@ -1,11 +1,11 @@
 {
   "empty_days": [],
   "start_date": "2023-01-01",
-  "last_plan_date": "2026-10-24",
-  "last_crawled_at": "2026-10-23 22:30:06.894295",
-  "row_count": 220549,
-  "days_covered": 1393,
-  "days_expected": 1392,
+  "last_plan_date": "2026-10-25",
+  "last_crawled_at": "2026-10-24 22:30:06.443682",
+  "row_count": 221145,
+  "days_covered": 1394,
+  "days_expected": 1393,
   "missing_days": [],
   "partitions": [
     "ship_plan_2023-01.parquet",
